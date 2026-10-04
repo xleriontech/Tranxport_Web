@@ -1,0 +1,3 @@
+# Netlify: publica solo la carpeta site/ (el resto es código fuente y docs).
+[build]
+  publish = "site"
