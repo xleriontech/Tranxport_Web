@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a3a52" />
+  <meta name="description" content="Rastrea tu pedido de Tranxport, mensajería y logística en moto en La Vega, Nocaima, Nimaima, Supatá y San Francisco, Cundinamarca." />
+  <meta name="format-detection" content="telephone=no" />
+  <meta property="og:title" content="Rastreo Tranxport" />
+  <meta property="og:description" content="Consulta si tu pedido está pendiente, en ruta o entregado. Mensajería en moto por la provincia de Gualivá." />
+  <meta property="og:locale" content="es_CO" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://images.pexels.com/photos/33411898/pexels-photo-33411898.jpeg?auto=compress&cs=tinysrgb&w=1200" />
+  <title>Rastreo Tranxport</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a3a52'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='16' font-family='Arial' font-weight='700' fill='%23f39c12'%3ET%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://script.google.com" />
+  <link rel="preconnect" href="https://script.googleusercontent.com" />
+  <link rel="dns-prefetch" href="https://script.google.com" />
+  <!-- Tailwind CSS vía CDN, como se pidió para desplegar un solo archivo. -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    /* El diseño vive aquí para que la tarjeta, el mapa y los estados
+       se vean bien al instante, incluso mientras Tailwind termina de cargar. */
+    :root {
+      --navy: #1a3a52;
+      --navy-2: #102838;
+      --paper: #f4f4f4;
+      --amber: #f39c12;
+      --ruta: #3498db;
+      --ok: #27ae60;
+      --muted: #4e6576;
+      --line: rgba(26, 58, 82, 0.12);
+      --sombra: 0 16px 40px rgba(26, 58, 82, 0.12);
+      --radio: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { color-scheme: light; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--navy);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(26, 58, 82, 0.045) 0.7px, transparent 0.7px);
+      background-size: 8px 8px;
+      z-index: 0;
+    }
+    #app { position: relative; z-index: 1; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+    :focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+    ::selection { background: var(--amber); color: var(--navy-2); }
+    [hidden] { display: none !important; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+
+    #app {
+      min-height: 100vh;
+      display: block;
+    }
+    .marca {
+      display: none;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(243, 156, 18, 0.18), transparent 28%),
+        linear-gradient(165deg, #1a3a52 0%, #102838 72%);
+      color: white;
+      padding: 36px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .topo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .marca-interior { position: relative; z-index: 1; max-width: 360px; }
+    .wordmark {
+      margin: 0;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.82);
+    }
+    .lema {
+      margin: 28px 0 0;
+      font-size: 40px;
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+      font-weight: 800;
+    }
+    .lema em {
+      font-style: normal;
+      color: var(--amber);
+    }
+    .marca p.bajada {
+      margin: 16px 0 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 15px;
+    }
+    .foto-marco {
+      display: block;
+      margin: 26px 0 0;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+    }
+    .foto-marco img {
+      display: block;
+      width: 100%;
+      height: 210px;
+      object-fit: cover;
+    }
+    .credito {
+      margin: 8px 0 0;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.55);
+    }
+    .datos-ruta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+    .dato {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      color: white;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .btn-whatsapp-marca {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 26px;
+      background: #25d366;
+      color: #073018;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .principal {
+      width: 100%;
+      padding: 18px 18px calc(108px + env(safe-area-inset-bottom));
+    }
+    .cabecera {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 3px solid var(--amber);
+    }
+    .cabecera h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+    }
+    .cabecera h1 span {
+      display: block;
+      margin-top: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--muted);
+    }
+    .link-wa {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: #25d366;
+      color: #073018;
+      text-decoration: none;
+      flex: none;
+    }
+
+    .intro { margin: 22px 0 0; }
+    .intro h2 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+      font-weight: 800;
+    }
+    .intro p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+
+    .aviso-demo {
+      margin-top: 16px;
+      background: #fff8ee;
+      border: 1px solid var(--amber);
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 13.5px;
+    }
+    .aviso-demo strong { display: block; margin-bottom: 4px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .chip, .reciente {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--navy);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .chip { border-color: rgba(243, 156, 18, 0.55); background: white; }
+
+    .buscador {
+      margin-top: 16px;
+      background: white;
+      border-radius: 24px;
+      padding: 12px;
+      box-shadow: var(--sombra);
+      border: 1px solid rgba(26, 58, 82, 0.06);
+      border-top: 4px solid var(--navy);
+    }
+    .campo { position: relative; }
+    .campo svg {
+      position: absolute;
+      left: 14px;
+      top: 18px;
+      width: 20px;
+      height: 20px;
+      color: var(--navy);
+    }
+    #q {
+      width: 100%;
+      height: 56px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      background: var(--paper);
+      color: var(--navy);
+      padding: 0 46px;
+      font-size: 17px;
+    }
+    #q::placeholder { color: #6d8090; }
+    #q:focus { background: white; border-color: var(--navy); outline: none; }
+    .campo.invalido #q { border-color: #c0392b; background: #fff6f5; }
+    .limpiar {
+      position: absolute;
+      right: 8px;
+      top: 10px;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--navy);
+      font-size: 22px;
+      line-height: 1;
+    }
+    .btn {
+      width: 100%;
+      margin-top: 10px;
+      height: 54px;
+      border: 0;
+      border-radius: 14px;
+      background: var(--navy);
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 18px rgba(26, 58, 82, 0.22);
+    }
+    .btn:hover { background: #234864; }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.72; cursor: wait; }
+    .btn .spinner, .mini-spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255, 255, 255, 0.35);
+      border-top-color: white;
+      animation: girar 0.7s linear infinite;
+    }
+    .recientes-wrap { margin-top: 12px; }
+    .recientes-wrap p, .leyenda p, .seccion h2, .pie p { margin: 0; }
+    .etiqueta-mini {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .leyenda { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .pastilla {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .pastilla i {
+      width: 8px; height: 8px; border-radius: 50%; display: block; background: currentColor;
+    }
+    .p-pend { background: #f39c12; color: #1a3a52; }
+    .p-ruta { background: #3498db; color: white; }
+    .p-ok { background: #27ae60; color: white; }
+
+    #resultados { margin-top: 16px; display: grid; gap: 14px; scroll-margin-top: 12px; }
+    .resumen-busqueda { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .ticket {
+      position: relative;
+      background: white;
+      border-radius: var(--radio);
+      box-shadow: var(--sombra);
+      overflow: hidden;
+      animation: subir 0.35s ease;
+    }
+    .ticket-top {
+      position: relative;
+      background: var(--navy);
+      color: white;
+      padding: 18px 18px 26px;
+    }
+    .guia-label {
+      margin: 0;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.62);
+      font-weight: 700;
+    }
+    .fila-codigo { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 6px; }
+    .codigo {
+      margin: 0;
+      font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 28px;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      overflow-wrap: anywhere;
+      padding-right: 8px;
+    }
+    .copiar-mini {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: transparent;
+      color: white;
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      flex: none;
+    }
+    .badge {
+      position: static;
+      margin-top: 14px;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 8px 16px rgba(16, 40, 56, 0.18);
+    }
+    .punto-vivo {
+      width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: block;
+    }
+    .ticket[data-estado="En ruta"] .punto-vivo { animation: pulso 1.4s ease-out infinite; }
+    .cuerpo { padding: 18px; position: relative; }
+    .estado-carga {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-weight: 800;
+    }
+    .estado-carga i {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(26, 58, 82, 0.18);
+      border-top-color: var(--navy);
+      display: block;
+      animation: girar 0.7s linear infinite;
+    }
+    .cliente {
+      margin: 2px 0 0;
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    .frase { margin: 8px 0 0; color: var(--muted); font-size: 14.5px; }
+    .cinta-demo {
+      display: inline-block;
+      margin-top: 10px;
+      background: #fff3d6;
+      color: #8a5a00;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .ruta {
+      --avance: 0;
+      --color-linea: var(--navy);
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin: 22px 0 0;
+      padding: 0;
+      position: relative;
+    }
+    .ruta::before, .ruta::after {
+      content: "";
+      position: absolute;
+      top: 11px;
+      left: 16%;
+      height: 3px;
+      border-radius: 99px;
+    }
+    .ruta::before { right: 16%; background: #e4ebf0; }
+    .ruta::after {
+      width: calc((100% - 32%) * var(--avance));
+      background: var(--color-linea);
+    }
+    .ruta li { position: relative; z-index: 1; width: 33%; text-align: center; }
+    .nodo {
+      width: 24px; height: 24px; border-radius: 50%;
+      margin: 0 auto;
+      background: white;
+      border: 3px solid #d5dee6;
+      display: grid;
+      place-items: center;
+    }
+    .ruta li.hecho .nodo, .ruta li.actual .nodo {
+      border-color: var(--navy);
+      background: var(--navy);
+    }
+    .ruta li.actual .nodo { box-shadow: 0 0 0 4px rgba(26, 58, 82, 0.12); }
+    .ticket[data-estado="Entregado"] .ruta li.hecho .nodo,
+    .ticket[data-estado="Entregado"] .ruta li.actual .nodo { background: var(--ok); border-color: var(--ok); }
+    .nodo svg { width: 12px; height: 12px; color: white; }
+    .ruta li span.nombre-paso {
+      display: block;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #8aa0b0;
+    }
+    .ruta li.hecho span.nombre-paso, .ruta li.actual span.nombre-paso { color: var(--navy); }
+    .moto-viaja {
+      position: absolute;
+      top: -10px;
+      left: calc(16% + 68% * var(--avance));
+      transform: translateX(-50%);
+      font-size: 16px;
+      z-index: 2;
+      filter: drop-shadow(0 2px 2px rgba(16, 40, 56, 0.2));
+    }
+
+    .perforacion {
+      height: 22px;
+      margin: 18px -8px 8px;
+      background:
+        radial-gradient(circle at 12px 11px, var(--paper) 8px, transparent 8.5px) left center / 24px 22px repeat-x;
+    }
+    .rejilla {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .rejilla .lleno { grid-column: 1 / -1; }
+    .dato-pedido {
+      background: #f7f9fb;
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .dato-pedido span {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .dato-pedido strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 16px;
+      overflow-wrap: anywhere;
+    }
+    .consultado { margin: 12px 0 0; font-size: 12px; color: var(--muted); }
+    .acciones { display: grid; gap: 8px; margin-top: 14px; }
+    .btn-sec, .btn-texto, .btn-wa {
+      min-height: 48px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      border: 0;
+    }
+    .btn-wa { background: #25d366; color: #073018; }
+    .btn-sec { background: var(--paper); color: var(--navy); border: 1px solid var(--line); }
+    .btn-texto { background: transparent; color: var(--navy); min-height: 40px; }
+    .mensaje h3 { overflow-wrap: anywhere; }
+
+    .mensaje {
+      background: white;
+      border-radius: var(--radio);
+      padding: 18px;
+      box-shadow: var(--sombra);
+      border-left: 5px solid var(--amber);
+    }
+    .mensaje.error-red { border-left-color: #c0392b; }
+    .mensaje h3 { margin: 0; font-size: 18px; letter-spacing: -0.02em; }
+    .mensaje p { margin: 8px 0 0; color: var(--muted); }
+    .detalles { margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .detalles summary { cursor: pointer; font-weight: 700; }
+
+    .esqueleto { padding: 18px; }
+    .sk {
+      height: 14px;
+      border-radius: 8px;
+      margin-top: 10px;
+      background: linear-gradient(90deg, #e7eef3 25%, #f8fbfc 37%, #e7eef3 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.2s ease infinite;
+    }
+    .sk-titulo { height: 28px; width: 46%; }
+    .sk-badge { height: 26px; width: 28%; margin-left: auto; }
+    .sk-corto { width: 62%; }
+
+    .seccion { margin-top: 28px; }
+    .seccion h2 {
+      font-size: 20px;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+    }
+    .seccion .bajada { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+    .mapa-card {
+      margin-top: 12px;
+      background: white;
+      border-radius: 22px;
+      padding: 8px 8px 12px;
+      box-shadow: 0 10px 28px rgba(26, 58, 82, 0.08);
+    }
+    .mapa-card svg { width: 100%; height: auto; display: block; }
+    .pin .nucleo { fill: var(--navy); }
+    .pin text { fill: var(--navy); font-size: 11px; font-weight: 700; font-family: "Segoe UI", system-ui, sans-serif; }
+    .pin .halo { fill: none; stroke: var(--amber); stroke-width: 2; opacity: 0; }
+    .pin.activo .nucleo { fill: var(--amber); }
+    .pin.activo text { font-weight: 800; }
+    .pin.activo .halo { opacity: 1; transform-origin: center; transform-box: fill-box; animation: pulso 1.6s ease-out infinite; }
+    .lista-munis {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0;
+    }
+    .lista-munis li {
+      background: white;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+    }
+    .lista-munis li.activo { background: var(--navy); color: white; border-color: var(--navy); }
+    .nota-mapa { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+
+    .pasos { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 0; }
+    .pasos li {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 10px;
+      position: relative;
+      padding-bottom: 14px;
+    }
+    .pasos li::before {
+      content: "";
+      position: absolute;
+      left: 17px;
+      top: 28px;
+      bottom: 0;
+      width: 2px;
+      background: #d7e1e8;
+    }
+    .pasos li:last-child::before { display: none; }
+    .num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--navy); color: white;
+      display: grid; place-items: center;
+      font-weight: 800; position: relative; z-index: 1;
+    }
+    .pasos strong { display: block; }
+    .pasos p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+
+    .pie {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pie strong { color: var(--navy); }
+    .pie p + p { margin-top: 6px; }
+
+    .fab {
+      position: fixed;
+      right: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      z-index: 20;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #25d366;
+      color: #073018;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 24px rgba(7, 48, 24, 0.28);
+      text-decoration: none;
+    }
+    .fab svg { width: 30px; height: 30px; }
+
+    .vacio {
+      background: white;
+      border-radius: 22px;
+      padding: 16px;
+      border: 1px dashed rgba(26, 58, 82, 0.2);
+    }
+    .vacio p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    @media (min-width: 900px) {
+      #app {
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+        align-items: stretch;
+      }
+      .marca {
+        display: flex;
+        min-height: 100vh;
+        position: sticky;
+        top: 0;
+      }
+      .principal {
+        padding: 28px 32px 48px;
+        max-width: 760px;
+        width: 100%;
+        margin-inline: auto;
+      }
+      .intro h2 { font-size: 42px; }
+      .fab { display: none; }
+    }
+    @media (max-width: 899px) {
+      .foto-marco, .credito, .btn-whatsapp-marca { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+    @media print {
+      .fab, .marca, .buscador, .seccion, .pie, .aviso-demo, .leyenda, .recientes-wrap { display: none !important; }
+      body::before { display: none; }
+      .principal { padding: 0; }
+      .ticket { box-shadow: none; border: 1px solid #ccc; }
+    }
+    @keyframes girar { to { transform: rotate(360deg); } }
+    @keyframes subir {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes shimmer { to { background-position: -400% 0; } }
+    @keyframes pulso {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      100% { transform: scale(1.7); opacity: 0; }
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Tranxport",
+    "description": "Mensajería y logística en moto en La Vega, Nocaima, Nimaima, Supatá y San Francisco, Cundinamarca.",
+    "areaServed": ["La Vega", "Nocaima", "Nimaima", "Supatá", "San Francisco"],
+    "address": {
+      "@type": "PostalAddress",
+      "addressRegion": "Cundinamarca",
+      "addressCountry": "CO"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app" class="bg-[#f4f4f4] text-[#1a3a52] antialiased">
+    <aside class="marca">
+      <svg class="topo" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="1.4">
+          <path d="M-20 140 C 70 90, 130 190, 220 130 S 360 60, 430 120" />
+          <path d="M-20 180 C 80 130, 150 230, 240 170 S 370 100, 430 160" />
+          <path d="M-20 230 C 90 180, 160 280, 250 220 S 360 160, 430 210" />
+          <path d="M-30 430 C 80 390, 170 490, 260 430 S 370 360, 440 430" />
+          <path d="M-30 480 C 90 430, 180 540, 270 470 S 380 410, 440 480" />
+          <path d="M-20 640 C 100 590, 180 700, 280 630 S 370 560, 450 640" />
+        </g>
+      </svg>
+      <div class="marca-interior">
+        <p class="wordmark">🏍️ Tranxport</p>
+        <p class="lema">De municipio<br />a municipio,<br /><em>en moto.</em></p>
+        <p class="bajada">Mensajería y logística por la provincia de Gualivá. El estado lo actualiza tu mensajero: pendiente, en ruta o entregado.</p>
+        <picture class="foto-marco">
+          <source media="(min-width: 900px)" srcset="https://images.pexels.com/photos/33411898/pexels-photo-33411898.jpeg?auto=compress&cs=tinysrgb&w=900" />
+          <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Mensajero en moto llevando un pedido por carretera." width="900" height="600" />
+        </picture>
+        <p class="credito">Foto: Duc Nguyen / Pexels</p>
+        <div class="datos-ruta">
+          <span class="dato">5 municipios</span>
+          <span class="dato">En moto</span>
+          <span class="dato">Por WhatsApp</span>
+        </div>
+        <a class="btn-whatsapp-marca" id="wa-marca" hidden href="#" rel="noopener noreferrer">Escribir por WhatsApp</a>
+      </div>
+    </aside>
+
+    <main class="principal">
+      <header class="cabecera">
+        <h1>🏍️ Rastreo Tranxport<span>La Vega · Nocaima · Nimaima · Supatá · San Francisco</span></h1>
+        <a class="link-wa" id="wa-cabecera" hidden href="#" aria-label="Escribir por WhatsApp" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="currentColor"><path d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.44 1.34 4.94L2 22l5.39-1.4a10.1 10.1 0 0 0 4.65 1.12h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2zm5.76 14.18c-.24.68-1.4 1.3-1.94 1.38-.5.07-1.12.1-1.81-.11-.42-.13-.95-.31-1.64-.6-2.88-1.24-4.76-4.14-4.9-4.33-.14-.19-1.16-1.54-1.16-2.94 0-1.4.73-2.09 1-2.37.26-.28.57-.35.76-.35h.55c.17 0 .41-.07.64.49.24.58.82 2 .89 2.15.07.14.12.32.02.51-.09.19-.14.31-.28.48-.14.16-.29.37-.42.49-.14.13-.28.28-.12.54.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.17 1.34.26.13.42.11.57-.07.16-.19.66-.77.84-1.03.17-.26.35-.22.58-.13.24.09 1.5.71 1.76.84.26.13.43.19.49.3.07.11.07.64-.17 1.32z"/></svg>
+        </a>
+      </header>
+
+      <section class="intro" aria-labelledby="titulo-buscar">
+        <h2 id="titulo-buscar">¿Dónde va tu pedido?</h2>
+        <p>Escribe el código que te enviamos por WhatsApp o el nombre del cliente. El estado lo registra tu mensajero: no es una ubicación GPS en vivo.</p>
+      </section>
+
+      <!-- Visible solo mientras API_URL siga siendo el texto de ejemplo. -->
+      <div class="aviso-demo" id="aviso-demo" hidden>
+        <strong>Modo demostración</strong>
+        Todavía no está conectada tu API. Prueba estos códigos de ejemplo. Cuando pegues la URL de Google Apps Script, las búsquedas serán reales y este aviso desaparece.
+        <div class="chips">
+          <button type="button" class="chip" data-ejemplo="TRX-001">TRX-001 · En ruta</button>
+          <button type="button" class="chip" data-ejemplo="TRX-002">TRX-002 · Pendiente</button>
+          <button type="button" class="chip" data-ejemplo="TRX-003">TRX-003 · Entregado</button>
+        </div>
+      </div>
+
+      <form class="buscador" id="formulario" role="search" autocomplete="off">
+        <div class="campo" id="envoltorio-campo">
+          <label class="sr-only" for="q">Código o nombre del pedido</label>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5" stroke-linecap="round"></path>
+          </svg>
+          <input id="q" name="q" type="text" inputmode="search" enterkeyhint="search" maxlength="80" placeholder="Escribe tu código (ej: TRX-001) o nombre" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <button type="button" class="limpiar" id="limpiar" hidden aria-label="Borrar texto">×</button>
+        </div>
+        <button class="btn" id="boton-buscar" type="submit">
+          <span id="texto-boton">Buscar pedido</span>
+        </button>
+      </form>
+
+      <div class="recientes-wrap" id="recientes-wrap" hidden>
+        <p class="etiqueta-mini">Búsquedas recientes</p>
+        <div class="chips" id="recientes"></div>
+      </div>
+
+      <div class="leyenda" aria-label="Significado de los colores">
+        <span class="pastilla p-pend"><i></i> Pendiente</span>
+        <span class="pastilla p-ruta"><i></i> En ruta</span>
+        <span class="pastilla p-ok"><i></i> Entregado</span>
+      </div>
+
+      <p id="anuncio" class="sr-only" aria-live="polite"></p>
+      <div id="resultados"></div>
+
+      <section class="seccion" aria-labelledby="titulo-mapa">
+        <h2 id="titulo-mapa">Municipios de la ruta</h2>
+        <p class="bajada">Provincia de Gualivá, Cundinamarca. Si el pedido tiene destino, el municipio se marca en ámbar.</p>
+        <div class="mapa-card">
+          <svg viewBox="0 0 360 214" role="img" aria-label="Mapa esquemático de San Francisco, Supatá, La Vega, Nimaima y Nocaima">
+            <ellipse cx="70" cy="168" rx="62" ry="26" fill="#e7eef3" />
+            <ellipse cx="188" cy="52" rx="54" ry="22" fill="#e7eef3" />
+            <ellipse cx="292" cy="162" rx="58" ry="24" fill="#edf3f7" />
+            <path d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#d5dee6" stroke-width="10" stroke-linecap="round" />
+            <path d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#1a3a52" stroke-width="2" stroke-dasharray="5 7" stroke-linecap="round" />
+            <text x="16" y="24" fill="#8aa0b0" font-size="11" font-family="Segoe UI, sans-serif">Gualivá · no a escala</text>
+            <g class="pin" data-muni="san-francisco">
+              <circle class="halo" cx="58" cy="138" r="14" />
+              <circle class="nucleo" cx="58" cy="138" r="6.5" />
+              <text x="58" y="168" text-anchor="middle">San Francisco</text>
+            </g>
+            <g class="pin" data-muni="supata">
+              <circle class="halo" cx="124" cy="70" r="14" />
+              <circle class="nucleo" cx="124" cy="70" r="6.5" />
+              <text x="124" y="52" text-anchor="middle">Supatá</text>
+            </g>
+            <g class="pin" data-muni="la-vega">
+              <circle class="halo" cx="180" cy="138" r="14" />
+              <circle class="nucleo" cx="180" cy="138" r="6.5" />
+              <text x="180" y="168" text-anchor="middle">La Vega</text>
+            </g>
+            <g class="pin" data-muni="nimaima">
+              <circle class="halo" cx="236" cy="70" r="14" />
+              <circle class="nucleo" cx="236" cy="70" r="6.5" />
+              <text x="236" y="52" text-anchor="middle">Nimaima</text>
+            </g>
+            <g class="pin" data-muni="nocaima">
+              <circle class="halo" cx="302" cy="138" r="14" />
+              <circle class="nucleo" cx="302" cy="138" r="6.5" />
+              <text x="302" y="168" text-anchor="middle">Nocaima</text>
+            </g>
+          </svg>
+        </div>
+        <ul class="lista-munis">
+          <li data-muni="la-vega">La Vega</li>
+          <li data-muni="nocaima">Nocaima</li>
+          <li data-muni="nimaima">Nimaima</li>
+          <li data-muni="supata">Supatá</li>
+          <li data-muni="san-francisco">San Francisco</li>
+        </ul>
+        <p class="nota-mapa">Mapa esquemático de cobertura. No muestra por dónde va la moto en este momento.</p>
+      </section>
+
+      <section class="seccion" aria-labelledby="titulo-pasos">
+        <h2 id="titulo-pasos">Cómo rastrear</h2>
+        <ol class="pasos">
+          <li>
+            <span class="num">1</span>
+            <div><strong>Recibe el código</strong><p>Te llega por WhatsApp cuando el pedido entra a la ruta. Se ve así: TRX-001.</p></div>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <div><strong>Escríbelo aquí</strong><p>También puedes buscar por el nombre del negocio o del cliente.</p></div>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <div><strong>Mira el estado</strong><p>Amarillo es pendiente, azul es en ruta y verde es entregado.</p></div>
+          </li>
+        </ol>
+      </section>
+
+      <footer class="pie">
+        <p><strong>Tranxport</strong> · Mensajería y logística en moto</p>
+        <p>La Vega, Nocaima, Nimaima, Supatá y San Francisco · Cundinamarca, Colombia</p>
+        <p id="linea-contacto">Para novedades de una entrega, escribe por WhatsApp.</p>
+      </footer>
+    </main>
+
+    <a class="fab" id="fab-whatsapp" hidden href="#" aria-label="WhatsApp de Tranxport" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.44 1.34 4.94L2 22l5.39-1.4a10.1 10.1 0 0 0 4.65 1.12h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2zm5.76 14.18c-.24.68-1.4 1.3-1.94 1.38-.5.07-1.12.1-1.81-.11-.42-.13-.95-.31-1.64-.6-2.88-1.24-4.76-4.14-4.9-4.33-.14-.19-1.16-1.54-1.16-2.94 0-1.4.73-2.09 1-2.37.26-.28.57-.35.76-.35h.55c.17 0 .41-.07.64.49.24.58.82 2 .89 2.15.07.14.12.32.02.51-.09.19-.14.31-.28.48-.14.16-.29.37-.42.49-.14.13-.28.28-.12.54.16.26.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.17 1.34.26.13.42.11.57-.07.16-.19.66-.77.84-1.03.17-.26.35-.22.58-.13.24.09 1.5.71 1.76.84.26.13.43.19.49.3.07.11.07.64-.17 1.32z"/></svg>
+    </a>
+  </div>
+
+  <noscript>
+    <p style="padding:16px;font-family:sans-serif;">Para rastrear tu pedido necesitas activar JavaScript en el navegador.</p>
+  </noscript>
+
+  <script>
+    /* ============================================================
+       CONFIGURACIÓN — EDITA SOLO ESTAS 2 LÍNEAS ANTES DE PUBLICAR
+       ============================================================
+
+       1) API_URL
+          Pega la URL de tu Google Apps Script desplegado como aplicación web.
+          Tiene que terminar en /exec  (NO uses la que termina en /dev).
+          Ejemplo:
+          "https://script.google.com/macros/s/AKfycbXXXXXXXX/exec"
+
+          La página llamará exactamente así:
+          API_URL + "?q=" + lo que escribió el cliente
+          Ejemplo real: https://script.google.com/macros/s/AKfycb.../exec?q=TRX-001
+
+          Mientras este valor contenga "TU_URL", el sitio trabaja en
+          MODO DEMOSTRACIÓN con pedidos de ejemplo. No se inventan datos
+          cuando la URL ya está configurada.
+
+       2) WHATSAPP_NUMBER
+          Tu celular con indicativo de Colombia, sin + y sin espacios.
+          También puedes escribirlo como "+57 300 111 2233": el sitio limpia
+          los símbolos. Si lo dejas con X, los botones de WhatsApp se ocultan.
+       ============================================================ */
+    const API_URL = "TU_URL_DE_GOOGLE_APPS_SCRIPT";
+    const WHATSAPP_NUMBER = "57XXXXXXXXXX";
+
+    /* Pedidos falsos SOLO para que veas la tarjeta antes de conectar la hoja.
+       Cuando API_URL sea real, esta lista no se usa nunca, ni si la API falla. */
+    const PEDIDOS_DEMO = [
+      { codigo: "TRX-001", cliente: "Farmacia La Vega", destino: "Nocaima", fecha: "04/10/2026", estado: "En ruta" },
+      { codigo: "TRX-002", cliente: "Tienda El Roble", destino: "Supatá", fecha: "04/10/2026", estado: "Pendiente" },
+      { codigo: "TRX-003", cliente: "Distribuidora Gualivá", destino: "San Francisco", fecha: "03/10/2026", estado: "Entregado" },
+      { codigo: "TRX-004", cliente: "Papelería Central", destino: "Nimaima", fecha: "04/10/2026", estado: "Pendiente" },
+      { codigo: "TRX-005", cliente: "Ferretería La Ruta", destino: "La Vega", fecha: "02/10/2026", estado: "Entregado" }
+    ];
+
+    const ESTADOS = {
+      "Pendiente": {
+        fondo: "#f39c12",
+        texto: "#1a3a52",
+        paso: 0,
+        frase: "Tu pedido está pendiente. Ya quedó registrado y el mensajero sale pronto."
+      },
+      "En ruta": {
+        fondo: "#3498db",
+        texto: "#ffffff",
+        paso: 1,
+        frase: "Tu pedido está en ruta. Va en moto hacia el destino. Ten el celular a la mano."
+      },
+      "Entregado": {
+        fondo: "#27ae60",
+        texto: "#ffffff",
+        paso: 2,
+        frase: "Tu pedido está entregado. Gracias por confiar en Tranxport."
+      }
+    };
+    const PASOS = ["Pendiente", "En ruta", "Entregado"];
+    const MENSAJE_NO_ENCONTRADO = "❌ Pedido no encontrado. Verifica el código o contáctanos por WhatsApp";
+
+    const formulario = document.getElementById("formulario");
+    const campo = document.getElementById("q");
+    const boton = document.getElementById("boton-buscar");
+    const textoBoton = document.getElementById("texto-boton");
+    const limpiar = document.getElementById("limpiar");
+    const resultados = document.getElementById("resultados");
+    const anuncio = document.getElementById("anuncio");
+    const envoltorio = document.getElementById("envoltorio-campo");
+
+    let controlador = null;
+    let secuencia = 0;
+
+    function apiLista() {
+      const url = String(API_URL || "").trim();
+      return url.startsWith("https://") && !url.includes("TU_URL");
+    }
+
+    function numeroWhatsApp() {
+      const limpio = String(WHATSAPP_NUMBER || "").replace(/\D/g, "");
+      if (limpio.length < 11 || limpio.length > 13) return "";
+      return limpio;
+    }
+
+    function enlaceWhatsApp(texto) {
+      const numero = numeroWhatsApp();
+      if (!numero) return "";
+      const mensaje = texto || "Hola Tranxport, quiero rastrear un pedido.";
+      return "https://wa.me/" + numero + "?text=" + encodeURIComponent(mensaje);
+    }
+
+    function activarWhatsApp() {
+      const href = enlaceWhatsApp();
+      ["wa-cabecera", "fab-whatsapp", "wa-marca"].forEach(function (id) {
+        const nodo = document.getElementById(id);
+        if (!nodo) return;
+        if (!href) {
+          nodo.hidden = true;
+          return;
+        }
+        nodo.href = href;
+        nodo.hidden = false;
+      });
+      const linea = document.getElementById("linea-contacto");
+      if (linea && !href) {
+        linea.textContent = "Configura WHATSAPP_NUMBER en index.html para mostrar el botón de contacto.";
+      }
+    }
+
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function claveMunicipio(texto) {
+      const n = normalizarTexto(texto);
+      if (n.includes("san francisco")) return "san-francisco";
+      if (n.includes("supata")) return "supata";
+      if (n.includes("nimaima")) return "nimaima";
+      if (n.includes("nocaima")) return "nocaima";
+      if (n.includes("vega")) return "la-vega";
+      return "";
+    }
+
+    function clasificarEstado(estado) {
+      const e = normalizarTexto(estado);
+      if (!e) return { nombre: "Sin estado", conocido: false, fondo: "#f4f4f4", texto: "#1a3a52", paso: -1, frase: "Este pedido no tiene un estado registrado todavía." };
+      if (e.includes("entreg")) return Object.assign({ nombre: "Entregado", conocido: true }, ESTADOS["Entregado"]);
+      if (e.includes("ruta") || e.includes("transito") || e.includes("camino")) return Object.assign({ nombre: "En ruta", conocido: true }, ESTADOS["En ruta"]);
+      if (e.includes("pend")) return Object.assign({ nombre: "Pendiente", conocido: true }, ESTADOS["Pendiente"]);
+      return {
+        nombre: String(estado).trim(),
+        conocido: false,
+        fondo: "#f4f4f4",
+        texto: "#1a3a52",
+        paso: -1,
+        frase: "Estado registrado: " + String(estado).trim() + "."
+      };
+    }
+
+    function formatearFecha(valor) {
+      if (valor == null || valor === "") return "Sin fecha";
+      if (typeof valor === "number" && valor > 20000 && valor < 80000) {
+        const utc = new Date(Date.UTC(1899, 11, 30) + valor * 86400000);
+        const dd = String(utc.getUTCDate()).padStart(2, "0");
+        const mm = String(utc.getUTCMonth() + 1).padStart(2, "0");
+        return dd + "/" + mm + "/" + utc.getUTCFullYear();
+      }
+      const s = String(valor).trim();
+      const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return iso[3] + "/" + iso[2] + "/" + iso[1];
+      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) return s;
+      return s;
+    }
+
+    function pick(obj, nombres) {
+      const claves = Object.keys(obj);
+      for (let i = 0; i < nombres.length; i++) {
+        const buscada = nombres[i];
+        const hallada = claves.find(function (k) {
+          return k === buscada || k.startsWith(buscada) || k.includes(buscada);
+        });
+        if (hallada != null && obj[hallada] != null && String(obj[hallada]).trim() !== "") return obj[hallada];
+      }
+      return "";
+    }
+
+    function normalizarPedido(crudo) {
+      if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return null;
+      const plano = {};
+      Object.keys(crudo).forEach(function (k) {
+        plano[normalizarTexto(k)] = crudo[k];
+      });
+      return {
+        codigo: String(pick(plano, ["codigo", "guia", "code", "id"]) || "").trim(),
+        cliente: String(pick(plano, ["cliente", "nombre", "negocio", "customer"]) || "").trim(),
+        destino: String(pick(plano, ["destino", "municipio", "ciudad", "hacia"]) || "").trim(),
+        fecha: formatearFecha(pick(plano, ["fecha", "date", "dia"])),
+        estado: pick(plano, ["estado", "status", "estatus"])
+      };
+    }
+
+    function pedidoValido(p) {
+      return !!(p && (p.codigo || p.cliente));
+    }
+
+    function extraerPedidos(data) {
+      if (data == null || data === "" || data === "null") return [];
+      if (Array.isArray(data)) return data.map(normalizarPedido).filter(pedidoValido);
+      if (typeof data !== "object") return [];
+
+      const anidado = data.pedidos || data.resultados || data.results || data.data || data.pedido || data.resultado;
+      if (Array.isArray(anidado)) return anidado.map(normalizarPedido).filter(pedidoValido);
+      if (anidado && typeof anidado === "object") {
+        const uno = normalizarPedido(anidado);
+        return pedidoValido(uno) ? [uno] : [];
+      }
+
+      const propio = normalizarPedido(data);
+      return pedidoValido(propio) ? [propio] : [];
+    }
+
+    function anunciar(texto) {
+      anuncio.textContent = texto;
+    }
+
+    function horaLocal() {
+      return new Date().toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+    }
+
+    function crearNodo(etiqueta, clase, texto) {
+      const nodo = document.createElement(etiqueta);
+      if (clase) nodo.className = clase;
+      if (texto != null) nodo.textContent = texto;
+      return nodo;
+    }
+
+    function iconoCheck() {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "3");
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M5 12.5l4.2 4.2L19 7.5");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      svg.appendChild(path);
+      return svg;
+    }
+
+    function marcarMunicipios(destinos) {
+      const activos = destinos.map(claveMunicipio).filter(Boolean);
+      document.querySelectorAll("[data-muni]").forEach(function (nodo) {
+        nodo.classList.toggle("activo", activos.indexOf(nodo.getAttribute("data-muni")) !== -1);
+      });
+    }
+
+    function enlaceDeGuia(codigo) {
+      const url = new URL(location.href);
+      url.hash = "";
+      url.search = "";
+      if (codigo) url.searchParams.set("q", codigo);
+      return url.toString();
+    }
+
+    async function copiarTexto(texto, boton, ok) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(texto);
+        } else {
+          throw new Error("sin clipboard");
+        }
+      } catch (err) {
+        const ta = document.createElement("textarea");
+        ta.value = texto;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      const anterior = boton.textContent;
+      boton.textContent = ok;
+      setTimeout(function () { boton.textContent = anterior; }, 1600);
+    }
+
+    function tarjetaPedido(pedido, esDemo) {
+      const info = clasificarEstado(pedido.estado);
+      const art = crearNodo("article", "ticket");
+      art.dataset.estado = info.nombre;
+      art.style.borderTop = "6px solid " + info.fondo;
+      art.setAttribute("aria-label", "Pedido " + (pedido.codigo || "sin código"));
+
+      const top = crearNodo("div", "ticket-top");
+      top.appendChild(crearNodo("p", "guia-label", "Tranxport · guía de ruta"));
+      const fila = crearNodo("div", "fila-codigo");
+      fila.appendChild(crearNodo("p", "codigo", pedido.codigo || "Sin código"));
+      if (pedido.codigo) {
+        const copiarCodigo = crearNodo("button", "copiar-mini", "Copiar");
+        copiarCodigo.type = "button";
+        copiarCodigo.addEventListener("click", function () {
+          copiarTexto(pedido.codigo, copiarCodigo, "Listo");
+        });
+        fila.appendChild(copiarCodigo);
+      }
+      top.appendChild(fila);
+
+      const badge = crearNodo("div", "badge");
+      badge.style.background = info.fondo;
+      badge.style.color = info.texto;
+      const vivo = crearNodo("span", "punto-vivo");
+      badge.appendChild(vivo);
+      badge.appendChild(document.createTextNode(info.nombre));
+      top.appendChild(badge);
+      art.appendChild(top);
+
+      const cuerpo = crearNodo("div", "cuerpo");
+      cuerpo.appendChild(crearNodo("p", "etiqueta-mini", "Cliente"));
+      cuerpo.appendChild(crearNodo("p", "cliente", pedido.cliente || "Sin nombre"));
+      cuerpo.appendChild(crearNodo("p", "frase", info.frase));
+      if (esDemo) cuerpo.appendChild(crearNodo("span", "cinta-demo", "Dato de ejemplo"));
+
+      const ruta = crearNodo("ol", "ruta");
+      const progreso = info.paso < 0 ? 0 : info.paso === 0 ? 0 : info.paso === 1 ? 50 : 100;
+      ruta.style.setProperty("--avance", String(progreso / 100));
+      if (info.nombre === "Entregado") ruta.style.setProperty("--color-linea", "#27ae60");
+      PASOS.forEach(function (nombre, indice) {
+        const li = document.createElement("li");
+        if (info.paso > indice) li.classList.add("hecho");
+        if (info.paso === indice) li.classList.add("actual");
+        const nodo = crearNodo("div", "nodo");
+        if (info.paso >= indice && indice === 2) nodo.appendChild(iconoCheck());
+        else if (info.paso > indice) nodo.appendChild(iconoCheck());
+        li.appendChild(nodo);
+        li.appendChild(crearNodo("span", "nombre-paso", nombre));
+        ruta.appendChild(li);
+      });
+      if (info.paso >= 0) {
+        const moto = crearNodo("span", "moto-viaja", "🏍️");
+        moto.setAttribute("aria-hidden", "true");
+        ruta.appendChild(moto);
+      }
+      cuerpo.appendChild(ruta);
+
+      cuerpo.appendChild(crearNodo("div", "perforacion"));
+
+      const rejilla = crearNodo("div", "rejilla");
+      const destino = crearNodo("div", "dato-pedido");
+      destino.appendChild(crearNodo("span", "", "Destino"));
+      destino.appendChild(crearNodo("strong", "", pedido.destino || "Sin destino"));
+      const fecha = crearNodo("div", "dato-pedido");
+      fecha.appendChild(crearNodo("span", "", "Fecha"));
+      fecha.appendChild(crearNodo("strong", "", pedido.fecha || "Sin fecha"));
+      rejilla.appendChild(destino);
+      rejilla.appendChild(fecha);
+      cuerpo.appendChild(rejilla);
+      cuerpo.appendChild(crearNodo("p", "consultado", "Consultado a las " + horaLocal() + " · el mensajero actualiza este estado en la hoja de ruta."));
+
+      const acciones = crearNodo("div", "acciones");
+      const wa = enlaceWhatsApp(
+        "Hola Tranxport, consulto la guía " + (pedido.codigo || "") +
+        (pedido.cliente ? " de " + pedido.cliente : "") +
+        (pedido.destino ? " con destino a " + pedido.destino : "") +
+        ". Estado que veo: " + info.nombre + "."
+      );
+      if (wa) {
+        const link = crearNodo("a", "btn-wa", "Escribir por WhatsApp");
+        link.href = wa;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        acciones.appendChild(link);
+      }
+      const compartir = crearNodo("button", "btn-sec", "Copiar enlace de rastreo");
+      compartir.type = "button";
+      compartir.addEventListener("click", function () {
+        copiarTexto(enlaceDeGuia(pedido.codigo || campo.value.trim()), compartir, "Enlace copiado");
+      });
+      acciones.appendChild(compartir);
+
+      const actualizar = crearNodo("button", "btn-texto", "Actualizar estado");
+      actualizar.type = "button";
+      actualizar.addEventListener("click", function () {
+        buscarPedido(pedido.codigo || campo.value.trim());
+      });
+      acciones.appendChild(actualizar);
+      cuerpo.appendChild(acciones);
+      art.appendChild(cuerpo);
+      return art;
+    }
+
+    function mensajeEstado(tipo, titulo, texto, detalle) {
+      const caja = crearNodo("div", "mensaje" + (tipo === "red" ? " error-red" : ""));
+      caja.appendChild(crearNodo("h3", "", titulo));
+      caja.appendChild(crearNodo("p", "", texto));
+      const wa = enlaceWhatsApp("Hola Tranxport, no encuentro mi pedido. ¿Me ayudas a rastrearlo?");
+      if (wa) {
+        const link = crearNodo("a", "btn-wa", "Escribir por WhatsApp");
+        link.href = wa;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.style.marginTop = "12px";
+        caja.appendChild(link);
+      }
+      if (detalle) {
+        const det = crearNodo("details", "detalles");
+        det.appendChild(crearNodo("summary", "", "Detalles técnicos"));
+        det.appendChild(crearNodo("p", "", detalle));
+        caja.appendChild(det);
+      }
+      const reintentar = crearNodo("button", "btn-texto", "Intentar de nuevo");
+      reintentar.type = "button";
+      reintentar.addEventListener("click", function () {
+        campo.focus();
+        if (campo.value.trim()) buscarPedido(campo.value);
+      });
+      caja.appendChild(reintentar);
+      return caja;
+    }
+
+    function pintarEsqueleto() {
+      const caja = crearNodo("div", "ticket esqueleto");
+      caja.setAttribute("aria-hidden", "true");
+      caja.appendChild(crearNodo("div", "sk sk-titulo"));
+      caja.appendChild(crearNodo("div", "sk sk-badge"));
+      caja.appendChild(crearNodo("div", "sk"));
+      caja.appendChild(crearNodo("div", "sk sk-corto"));
+      caja.appendChild(crearNodo("div", "sk"));
+      return caja;
+    }
+
+    function renderizarInicio() {
+      resultados.replaceChildren();
+      const vacio = crearNodo("div", "vacio");
+      vacio.appendChild(crearNodo("p", "", "Cuando busques, aquí verás el cliente, el destino y si la moto ya salió."));
+      resultados.appendChild(vacio);
+      marcarMunicipios([]);
+    }
+
+    function renderizarResultados(pedidos, consulta, esDemo) {
+      resultados.replaceChildren();
+      marcarMunicipios(pedidos.map(function (p) { return p.destino; }));
+      if (!pedidos.length) {
+        anunciar(MENSAJE_NO_ENCONTRADO);
+        document.title = "Pedido no encontrado · Tranxport";
+        resultados.appendChild(mensajeEstado("no", MENSAJE_NO_ENCONTRADO, "Si el código viene de WhatsApp, cópialo y pégalo tal cual, con las letras y el guion."));
+        return;
+      }
+      const cabeza = crearNodo("p", "resumen-busqueda", pedidos.length === 1
+        ? "1 pedido para «" + consulta + "»"
+        : "Encontramos " + pedidos.length + " pedidos para «" + consulta + "»");
+      resultados.appendChild(cabeza);
+      pedidos.forEach(function (pedido) {
+        resultados.appendChild(tarjetaPedido(pedido, esDemo));
+      });
+      const primero = pedidos[0];
+      const info = clasificarEstado(primero.estado);
+      document.title = (primero.codigo || "Pedido") + " · " + info.nombre + " · Tranxport";
+      anunciar(pedidos.length === 1
+        ? "Pedido " + (primero.codigo || "") + ". Estado " + info.nombre + ". Destino " + (primero.destino || "sin destino") + "."
+        : "Se encontraron " + pedidos.length + " pedidos.");
+      if (window.matchMedia("(max-width: 899px)").matches) {
+        resultados.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          block: "start"
+        });
+      }
+    }
+
+    function ponerCargando(activo) {
+      boton.disabled = activo;
+      formulario.setAttribute("aria-busy", activo ? "true" : "false");
+      if (activo) {
+        textoBoton.textContent = "Buscando...";
+        if (!boton.querySelector(".spinner")) {
+          const spinner = crearNodo("span", "spinner");
+          spinner.setAttribute("aria-hidden", "true");
+          boton.insertBefore(spinner, textoBoton);
+        }
+      } else {
+        textoBoton.textContent = "Buscar pedido";
+        const spinner = boton.querySelector(".spinner");
+        if (spinner) spinner.remove();
+      }
+    }
+
+    function guardarReciente(q) {
+      try {
+        const previas = JSON.parse(localStorage.getItem("tranxport_recientes") || "[]");
+        const lista = [q].concat(previas.filter(function (item) {
+          return normalizarTexto(item) !== normalizarTexto(q);
+        })).slice(0, 4);
+        localStorage.setItem("tranxport_recientes", JSON.stringify(lista));
+        pintarRecientes(lista);
+      } catch (err) {
+        /* Modo privado: las búsquedas recientes no se guardan y la página sigue. */
+      }
+    }
+
+    function pintarRecientes(lista) {
+      const wrap = document.getElementById("recientes-wrap");
+      const caja = document.getElementById("recientes");
+      caja.replaceChildren();
+      if (!lista || !lista.length) {
+        wrap.hidden = true;
+        return;
+      }
+      wrap.hidden = false;
+      lista.forEach(function (item) {
+        const b = crearNodo("button", "reciente", item);
+        b.type = "button";
+        b.addEventListener("click", function () {
+          campo.value = item;
+          buscarPedido(item);
+        });
+        caja.appendChild(b);
+      });
+    }
+
+    function buscarEnDemo(q) {
+      const n = normalizarTexto(q);
+      return PEDIDOS_DEMO.filter(function (p) {
+        return [p.codigo, p.cliente, p.destino].some(function (campoPedido) {
+          return normalizarTexto(campoPedido).includes(n);
+        });
+      }).map(function (p) { return Object.assign({}, p); });
+    }
+
+    function construirUrl(q) {
+      const base = String(API_URL).trim();
+      const separador = base.indexOf("?") === -1 ? "?" : "&";
+      return base + separador + "q=" + encodeURIComponent(q);
+    }
+
+    async function buscarPedido(texto) {
+      const q = String(texto || "").trim().replace(/\s+/g, " ");
+      envoltorio.classList.remove("invalido");
+      if (q.length < 2) {
+        envoltorio.classList.add("invalido");
+        anunciar("Escribe al menos 2 caracteres.");
+        resultados.replaceChildren(mensajeEstado("no", "Falta el dato de búsqueda", "Escribe tu código (ej: TRX-001) o el nombre del cliente."));
+        campo.focus();
+        return;
+      }
+
+      const miId = ++secuencia;
+      if (controlador) controlador.abort();
+      controlador = new AbortController();
+      ponerCargando(true);
+      anunciar("Buscando...");
+      marcarMunicipios([]);
+      const avisoCarga = crearNodo("p", "estado-carga");
+      const iconoCarga = document.createElement("i");
+      iconoCarga.setAttribute("aria-hidden", "true");
+      avisoCarga.appendChild(iconoCarga);
+      avisoCarga.appendChild(document.createTextNode("Buscando..."));
+      resultados.replaceChildren(avisoCarga, pintarEsqueleto());
+      campo.value = q;
+      limpiar.hidden = false;
+
+      const urlCompartida = new URL(location.href);
+      urlCompartida.searchParams.set("q", q);
+      history.replaceState(null, "", urlCompartida);
+
+      try {
+        /* MODO DEMO: no llama a internet. Sirve para previsualizar el diseño. */
+        if (!apiLista()) {
+          await new Promise(function (resolver) { setTimeout(resolver, 650); });
+          if (miId !== secuencia) return;
+          renderizarResultados(buscarEnDemo(q), q, true);
+          guardarReciente(q);
+          return;
+        }
+
+        if (navigator.onLine === false) {
+          throw new Error("SIN_INTERNET");
+        }
+
+        /* Petición real. GET simple, sin encabezados extra, para no disparar
+           un preflight que Google Apps Script a veces rechaza. */
+        const respuesta = await fetch(construirUrl(q), {
+          method: "GET",
+          redirect: "follow",
+          cache: "no-store",
+          signal: controlador.signal
+        });
+        if (miId !== secuencia) return;
+
+        const crudo = await respuesta.text();
+        const texto = crudo.replace(/^\uFEFF/, "").replace(/^\)\]\}',?\s*/, "").trim();
+        if (!respuesta.ok) {
+          throw new Error("HTTP " + respuesta.status + ". Revisa que la URL termine en /exec y que la implementación sea pública.");
+        }
+        if (!texto || texto.charAt(0) === "<") {
+          throw new Error("La API devolvió HTML, no JSON. Abre la URL en el navegador: debes ver datos, no una página de acceso de Google. Publica el script como «Cualquier persona» y devuelve ContentService JSON.");
+        }
+
+        let data;
+        try {
+          data = JSON.parse(texto);
+        } catch (errJson) {
+          throw new Error("La respuesta no es JSON válido.");
+        }
+        if (miId !== secuencia) return;
+        renderizarResultados(extraerPedidos(data), q, false);
+        guardarReciente(q);
+      } catch (err) {
+        if (err && err.name === "AbortError") return;
+        if (miId !== secuencia) return;
+        console.error("Tranxport no pudo consultar la API:", err);
+        const sinRed = err && err.message === "SIN_INTERNET";
+        const visible = sinRed
+          ? "Parece que no tienes internet. Conéctate e inténtalo otra vez."
+          : "No pudimos consultar el rastreo. Revisa tu conexión e inténtalo de nuevo. Si sigue igual, escríbenos por WhatsApp.";
+        let detalle = err && err.message ? String(err.message) : "Error de red";
+        if (/failed to fetch|networkerror|load failed|cors/i.test(detalle)) {
+          detalle += " Si la URL sí abre el JSON en una pestaña nueva, vuelve a implementar el script como aplicación web: ejecutar como tú y acceso «Cualquier persona». Usa la URL que termina en /exec.";
+        }
+        anunciar(visible);
+        document.title = "Error de rastreo · Tranxport";
+        resultados.replaceChildren(mensajeEstado("red", "No pudimos consultar", visible, detalle));
+      } finally {
+        if (miId === secuencia) ponerCargando(false);
+      }
+    }
+
+    formulario.addEventListener("submit", function (evento) {
+      evento.preventDefault();
+      buscarPedido(campo.value);
+    });
+
+    campo.addEventListener("input", function () {
+      limpiar.hidden = campo.value.length === 0;
+      envoltorio.classList.remove("invalido");
+    });
+
+    limpiar.addEventListener("click", function () {
+      campo.value = "";
+      limpiar.hidden = true;
+      campo.focus();
+    });
+
+    document.querySelectorAll("[data-ejemplo]").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        const valor = chip.getAttribute("data-ejemplo");
+        campo.value = valor;
+        buscarPedido(valor);
+      });
+    });
+
+    activarWhatsApp();
+    if (!apiLista()) document.getElementById("aviso-demo").hidden = false;
+    try {
+      pintarRecientes(JSON.parse(localStorage.getItem("tranxport_recientes") || "[]"));
+    } catch (err) {
+      pintarRecientes([]);
+    }
+
+    const params = new URLSearchParams(location.search);
+    const inicial = (params.get("q") || params.get("codigo") || "").trim();
+    if (inicial) {
+      campo.value = inicial;
+      limpiar.hidden = false;
+      buscarPedido(inicial);
+    } else {
+      renderizarInicio();
+    }
+  </script>
+</body>
+</html>

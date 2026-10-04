@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Rastreo Tranxport — Mensajería en moto | La Vega y alrededores</title>
+<meta name="description" content="Rastrea tu pedido Tranxport en tiempo real. Mensajería y logística en moto en La Vega, Nocaima, Nimaima, Supatá y San Francisco." />
+<meta name="theme-color" content="#1a3a52" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a3a52'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>T</text></svg>" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#1a3a52;
+    --navy-deep:#0f2536;
+    --bg:#f4f4f4;
+    --pend:#f39c12;
+    --ruta:#3498db;
+    --ok:#27ae60;
+  }
+  html{ scroll-behavior:smooth; }
+  body{ font-family:'Plus Jakarta Sans', system-ui, sans-serif; background:var(--bg); color:#15212c; -webkit-tap-highlight-color: transparent; }
+  .font-mono2{ font-family:'JetBrains Mono', monospace; }
+  /* Textura sutil mapa */
+  .map-grid{
+    background-image:
+      linear-gradient(rgba(26,58,82,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26,58,82,.07) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 40%, transparent 80%);
+  }
+  .route-dash{
+    background-image: linear-gradient(90deg, #1a3a52 55%, transparent 45%);
+    background-size: 12px 2px;
+    background-repeat: repeat-x;
+    height:2px;
+  }
+  /* Animaciones */
+  @keyframes floaty { 0%,100%{ transform: translateY(0)} 50%{ transform: translateY(-8px)} }
+  @keyframes slideUp { from{ opacity:0; transform:translateY(18px) scale(.98)} to{ opacity:1; transform:translateY(0) scale(1)} }
+  @keyframes pulse-ring { 0%{ transform:scale(1); opacity:.6} 100%{ transform:scale(1.8); opacity:0} }
+  @keyframes spin { to{ transform:rotate(360deg)} }
+  @keyframes shimmer { 0%{ background-position:-400px 0 } 100%{ background-position:400px 0 } }
+  @keyframes bounce-soft { 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-4px)} }
+  .animate-slideUp{ animation: slideUp .45s cubic-bezier(.21,1.02,.73,1) both; }
+  .animate-floaty{ animation: floaty 5s ease-in-out infinite; }
+  .spinner{
+    width:22px; height:22px; border-radius:9999px;
+    border:3px solid rgba(255,255,255,.35); border-top-color:#fff;
+    animation: spin .7s linear infinite;
+  }
+  .spinner-dark{
+    width:40px; height:40px; border-radius:9999px;
+    border:4px solid #dbe7ef; border-top-color:var(--navy);
+    animation: spin .8s linear infinite;
+  }
+  .skeleton{
+    background: linear-gradient(90deg, #e8edf1 25%, #f5f8fa 50%, #e8edf1 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.2s infinite linear;
+  }
+  /* Timeline */
+  .step-dot{ transition: all .4s cubic-bezier(.21,1.02,.73,1); }
+  .progress-fill{ transition: width .9s cubic-bezier(.21,1.02,.73,1); }
+  /* Input focus glow */
+  .search-glow:focus-within{ box-shadow:0 0 0 4px rgba(26,58,82,.12), 0 12px 32px -8px rgba(26,58,82,.25); border-color:var(--navy); }
+  /* Details accordion */
+  details > summary{ list-style:none; cursor:pointer; }
+  details > summary::-webkit-details-marker{ display:none; }
+  details[open] .chev{ transform:rotate(180deg); }
+  .chev{ transition: transform .3s ease; }
+  /* Código */
+  pre.codebox{ white-space:pre; overflow-x:auto; }
+  pre.codebox::-webkit-scrollbar{ height:8px; }
+  pre.codebox::-webkit-scrollbar-thumb{ background:#334d61; border-radius:99px; }
+  /* Toast */
+  #toast{ transition: transform .35s cubic-bezier(.21,1.02,.73,1), opacity .3s; }
+  /* Botón WhatsApp flotante */
+  .wa-pulse::before{
+    content:''; position:absolute; inset:0; border-radius:9999px;
+    background:#25D366; animation: pulse-ring 1.8s ease-out infinite; z-index:-1;
+  }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<!-- ═══════════ HEADER STICKY ═══════════ -->
+<header class="sticky top-0 z-40 bg-[#1a3a52]/95 backdrop-blur-md border-b border-white/10 shadow-lg shadow-[#1a3a52]/20">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <a href="#inicio" class="flex items-center gap-2.5 group">
+      <span class="relative grid place-items-center w-10 h-10 rounded-2xl bg-white text-[#1a3a52] shadow-md group-hover:scale-105 transition-transform">
+        <i data-lucide="bike" class="w-6 h-6"></i>
+        <span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#1a3a52]"></span>
+      </span>
+      <span class="leading-tight">
+        <span class="block text-white font-extrabold text-[17px] tracking-tight">Rastreo Tranxport</span>
+        <span class="block text-[11px] text-sky-200/80 font-medium tracking-wide uppercase">Mensajería en moto · Cundinamarca</span>
+      </span>
+    </a>
+    <div class="flex items-center gap-2">
+      <a href="#ayuda" class="hidden sm:inline-flex items-center gap-1.5 text-[13px] font-semibold text-sky-100/90 hover:text-white px-3 py-2 rounded-xl hover:bg-white/10 transition">
+        <i data-lucide="circle-help" class="w-4 h-4"></i> Ayuda
+      </a>
+      <a id="waHeaderBtn" href="https://wa.me/573001234567?text=Hola%20Tranxport%2C%20necesito%20ayuda%20con%20mi%20pedido" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1fb857] active:scale-95 transition text-white text-[13px] font-bold px-3.5 py-2.5 rounded-xl shadow-md">
+        <i data-lucide="message-circle" class="w-4 h-4"></i><span class="hidden xs:inline sm:inline">WhatsApp</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ HERO + BUSCADOR ═══════════ -->
+<section id="inicio" class="relative overflow-hidden bg-[#1a3a52] text-white">
+  <div class="absolute inset-0 map-grid opacity-100"></div>
+  <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-sky-400/20 blur-3xl"></div>
+  <div class="absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-emerald-400/10 blur-3xl"></div>
+
+  <div class="relative max-w-5xl mx-auto px-4 pt-8 pb-6 sm:pt-12 sm:pb-10">
+    <div class="grid lg:grid-cols-[1.1fr_.9fr] gap-8 items-center">
+      <!-- Texto -->
+      <div class="text-center lg:text-left">
+        <div class="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full pl-1.5 pr-3.5 py-1.5 text-[12px] font-semibold backdrop-blur">
+          <span class="inline-flex items-center gap-1 bg-emerald-400 text-[#0f2536] text-[11px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wide">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0f2536] animate-pulse"></span> En vivo
+          </span>
+          <span class="text-sky-100">Rastreo en tiempo real de tu envío</span>
+        </div>
+        <h1 class="mt-4 text-[32px] sm:text-5xl font-extrabold tracking-tight leading-[1.05]">
+          ¿Dónde va<br class="hidden sm:block" /> tu <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-emerald-300">pedido?</span>
+        </h1>
+        <p class="mt-3 text-sky-100/90 text-[15px] sm:text-lg max-w-md mx-auto lg:mx-0 leading-relaxed">
+          Escribe tu código y conoce al instante si tu paquete está pendiente, en ruta o ya fue entregado.
+        </p>
+        <!-- Municipios pills -->
+        <div class="mt-4 flex flex-wrap justify-center lg:justify-start gap-2 text-[12px] font-semibold">
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>La Vega</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>Nocaima</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>Nimaima</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>Supatá</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>San Francisco</span>
+        </div>
+      </div>
+
+      <!-- Ilustración / tarjeta ruta (desktop) -->
+      <div class="hidden lg:block">
+        <div class="relative bg-white/[.07] border border-white/15 rounded-3xl p-6 backdrop-blur-sm animate-floaty">
+          <div class="flex items-center justify-between">
+            <span class="font-mono2 text-[12px] text-sky-200 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">TRX-001 · EN RUTA</span>
+            <span class="flex items-center gap-1.5 text-[12px] font-bold text-emerald-300"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>GPS activo</span>
+          </div>
+          <div class="mt-6 space-y-0">
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center"><span class="w-4 h-4 rounded-full bg-amber-400 ring-4 ring-amber-400/20"></span><span class="w-0.5 flex-1 bg-white/15 my-1"></span></div>
+              <div class="pb-5"><p class="text-[13px] font-bold">La Vega — Origen</p><p class="text-[12px] text-sky-200/70">Paquete recogido · 9:40 a.m.</p></div>
+            </div>
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center"><span class="w-4 h-4 rounded-full bg-sky-400 ring-4 ring-sky-400/20 animate-pulse"></span><span class="w-0.5 flex-1 bg-white/15 my-1"></span></div>
+              <div class="pb-5"><p class="text-[13px] font-bold">En camino a Nocaima</p><p class="text-[12px] text-sky-200/70">Motorizado a 12 min del destino</p></div>
+            </div>
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center"><span class="w-4 h-4 rounded-full bg-white/20 ring-4 ring-white/10"></span></div>
+              <div><p class="text-[13px] font-bold text-white/60">Entrega estimada · 11:15 a.m.</p></div>
+            </div>
+          </div>
+          <div class="mt-4 route-dash opacity-40"></div>
+          <div class="mt-3 flex items-center gap-2 text-[12px] text-sky-200/80">
+            <i data-lucide="timer" class="w-4 h-4"></i> Promedio de entrega: <strong class="text-white">mismo día</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Curva -->
+  <svg class="block w-full text-[#f4f4f4] -mb-px" viewBox="0 0 1440 48" fill="currentColor" preserveAspectRatio="none"><path d="M0,48 L0,28 C240,48 480,0 720,16 C960,32 1200,40 1440,12 L1440,48 Z"/></svg>
+</section>
+
+<!-- ═══════════ BUSCADOR PRINCIPAL ═══════════ -->
+<main class="max-w-xl mx-auto px-4 -mt-2 pb-4">
+  <div class="bg-white rounded-3xl shadow-xl shadow-[#1a3a52]/10 border border-slate-200/80 p-5 sm:p-7 relative overflow-hidden">
+    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#f39c12] via-[#3498db] to-[#27ae60]"></div>
+
+    <label for="searchInput" class="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-wider text-[#1a3a52]">
+      <i data-lucide="package-search" class="w-4 h-4"></i> Código de rastreo
+    </label>
+
+    <form id="searchForm" class="mt-3" autocomplete="off">
+      <div class="search-glow flex items-center gap-2 bg-[#f4f4f4] border-2 border-slate-200 rounded-2xl pl-4 pr-2 py-2 transition-all">
+        <i data-lucide="scan-line" class="w-5 h-5 text-[#1a3a52]/50 shrink-0"></i>
+        <input
+          id="searchInput"
+          type="text"
+          inputmode="search"
+          enterkeyhint="search"
+          placeholder="Escribe tu código (ej: TRX-001) o nombre"
+          class="flex-1 bg-transparent outline-none text-[16px] font-semibold placeholder:text-slate-400 placeholder:font-medium placeholder:text-[14px] text-[#1a3a52] min-w-0 py-2.5"
+        />
+        <button type="button" id="clearBtn" class="hidden shrink-0 w-8 h-8 grid place-items-center rounded-full hover:bg-slate-200 text-slate-400 transition" aria-label="Limpiar">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <button id="searchBtn" type="submit" class="mt-3 w-full inline-flex items-center justify-center gap-2.5 bg-[#1a3a52] hover:bg-[#0f2536] active:scale-[.98] transition text-white font-extrabold text-[16px] py-4 rounded-2xl shadow-lg shadow-[#1a3a52]/30">
+        <span id="searchBtnContent" class="inline-flex items-center gap-2.5">
+          <i data-lucide="search" class="w-5 h-5"></i> Rastrear pedido
+        </span>
+      </button>
+    </form>
+
+    <!-- Ejemplos + recientes -->
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      <span class="text-[12px] font-semibold text-slate-400">Prueba con:</span>
+      <button data-demo="TRX-001" class="demo-chip text-[12px] font-bold font-mono2 bg-sky-50 text-[#1a3a52] border border-sky-200 px-3 py-1.5 rounded-full hover:bg-sky-100 active:scale-95 transition">TRX-001</button>
+      <button data-demo="TRX-002" class="demo-chip text-[12px] font-bold font-mono2 bg-sky-50 text-[#1a3a52] border border-sky-200 px-3 py-1.5 rounded-full hover:bg-sky-100 active:scale-95 transition">TRX-002</button>
+      <button data-demo="Farmacia La Vega" class="demo-chip text-[12px] font-bold bg-sky-50 text-[#1a3a52] border border-sky-200 px-3 py-1.5 rounded-full hover:bg-sky-100 active:scale-95 transition">Farmacia La Vega</button>
+    </div>
+    <div id="recentWrap" class="hidden mt-3 pt-3 border-t border-dashed border-slate-200">
+      <p class="text-[12px] font-semibold text-slate-400 flex items-center gap-1.5"><i data-lucide="history" class="w-3.5 h-3.5"></i> Búsquedas recientes</p>
+      <div id="recentChips" class="mt-2 flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- ── ESTADO DE CARGA ── -->
+    <div id="loadingState" class="hidden mt-5">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div class="flex items-center gap-4">
+          <div class="spinner-dark shrink-0"></div>
+          <div class="flex-1">
+            <p class="font-extrabold text-[#1a3a52] text-[15px]">Buscando tu pedido…</p>
+            <p class="text-[13px] text-slate-500">Consultando el sistema de Tranxport</p>
+          </div>
+        </div>
+        <div class="mt-4 space-y-2.5">
+          <div class="skeleton h-3.5 rounded-full w-3/4"></div>
+          <div class="skeleton h-3.5 rounded-full w-full"></div>
+          <div class="skeleton h-3.5 rounded-full w-5/6"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TARJETA DE RESULTADO ── -->
+    <div id="resultCard" class="hidden mt-5"></div>
+
+    <!-- ── ERROR: NO ENCONTRADO ── -->
+    <div id="notFoundState" class="hidden mt-5 animate-slideUp">
+      <div class="rounded-2xl border-2 border-dashed border-red-200 bg-red-50/60 p-5 text-center">
+        <span class="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-red-100 text-red-500 mb-3">
+          <i data-lucide="package-x" class="w-7 h-7"></i>
+        </span>
+        <p class="font-extrabold text-[#1a3a52] text-[16px]">Pedido no encontrado</p>
+        <p class="mt-1.5 text-[14px] text-slate-600 leading-relaxed">Verifica el código o contáctanos por WhatsApp y te ayudamos de inmediato.</p>
+        <a id="waNotFoundBtn" href="https://wa.me/573001234567?text=Hola%20Tranxport%2C%20no%20encuentro%20mi%20pedido" target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1fb857] active:scale-95 transition text-white font-bold text-[14px] px-5 py-3 rounded-xl shadow-md">
+          <i data-lucide="message-circle" class="w-4 h-4"></i> Hablar por WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- ── ERROR DE RED ── -->
+    <div id="networkErrorState" class="hidden mt-5 animate-slideUp">
+      <div class="rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/70 p-5 text-center">
+        <span class="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 mb-3">
+          <i data-lucide="wifi-off" class="w-7 h-7"></i>
+        </span>
+        <p class="font-extrabold text-[#1a3a52] text-[16px]">Sin conexión con el servidor</p>
+        <p class="mt-1.5 text-[14px] text-slate-600 leading-relaxed">Revisa tu internet e inténtalo de nuevo. Si persiste, escríbenos por WhatsApp.</p>
+        <div class="mt-4 flex gap-2 justify-center">
+          <button id="retryBtn" class="inline-flex items-center gap-2 bg-[#1a3a52] hover:bg-[#0f2536] active:scale-95 transition text-white font-bold text-[14px] px-5 py-3 rounded-xl">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reintentar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mini stats -->
+  <div class="mt-4 grid grid-cols-3 gap-2.5">
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 text-center shadow-sm">
+      <i data-lucide="map" class="w-5 h-5 mx-auto text-[#1a3a52]"></i>
+      <p class="mt-1.5 text-[18px] font-extrabold text-[#1a3a52] leading-none">5</p>
+      <p class="text-[11px] font-semibold text-slate-500 mt-0.5">Municipios</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 text-center shadow-sm">
+      <i data-lucide="zap" class="w-5 h-5 mx-auto text-[#f39c12]"></i>
+      <p class="mt-1.5 text-[18px] font-extrabold text-[#1a3a52] leading-none">Mismo</p>
+      <p class="text-[11px] font-semibold text-slate-500 mt-0.5">día de entrega</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 text-center shadow-sm">
+      <i data-lucide="bike" class="w-5 h-5 mx-auto text-[#27ae60]"></i>
+      <p class="mt-1.5 text-[18px] font-extrabold text-[#1a3a52] leading-none">100%</p>
+      <p class="text-[11px] font-semibold text-slate-500 mt-0.5">En moto</p>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════════ CÓMO FUNCIONA ═══════════ -->
+<section class="max-w-5xl mx-auto px-4 mt-8">
+  <div class="text-center">
+    <p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Simple y rápido</p>
+    <h2 class="mt-1 text-2xl sm:text-3xl font-extrabold text-[#1a3a52] tracking-tight">Rastrea en 3 pasos</h2>
+  </div>
+  <div class="mt-5 grid sm:grid-cols-3 gap-3">
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
+      <span class="grid place-items-center w-11 h-11 rounded-2xl bg-[#1a3a52] text-white font-extrabold text-[15px]">1</span>
+      <h3 class="mt-3 font-extrabold text-[#1a3a52] text-[15px] flex items-center gap-2"><i data-lucide="ticket" class="w-4 h-4 text-slate-400"></i> Recibe tu código</h3>
+      <p class="mt-1 text-[13.5px] text-slate-600 leading-relaxed">Te lo enviamos por WhatsApp al confirmar tu servicio. Formato: <span class="font-mono2 font-bold text-[#1a3a52]">TRX-001</span>.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
+      <span class="grid place-items-center w-11 h-11 rounded-2xl bg-[#3498db] text-white font-extrabold text-[15px]">2</span>
+      <h3 class="mt-3 font-extrabold text-[#1a3a52] text-[15px] flex items-center gap-2"><i data-lucide="keyboard" class="w-4 h-4 text-slate-400"></i> Escríbelo arriba</h3>
+      <p class="mt-1 text-[13.5px] text-slate-600 leading-relaxed">También puedes buscar por el <strong>nombre del cliente o negocio</strong> que hizo el envío.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition">
+      <span class="grid place-items-center w-11 h-11 rounded-2xl bg-[#27ae60] text-white font-extrabold text-[15px]">3</span>
+      <h3 class="mt-3 font-extrabold text-[#1a3a52] text-[15px] flex items-center gap-2"><i data-lucide="radar" class="w-4 h-4 text-slate-400"></i> Conoce el estado</h3>
+      <p class="mt-1 text-[13.5px] text-slate-600 leading-relaxed">Verás si está <strong>pendiente</strong>, <strong>en ruta</strong> o <strong>entregado</strong>, con destino y fecha.</p>
+    </div>
+  </div>
+
+  <!-- Leyenda de estados -->
+  <div class="mt-3 bg-[#1a3a52] rounded-2xl p-5 sm:p-6 text-white overflow-hidden relative">
+    <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/5 blur-2xl"></div>
+    <p class="text-[12px] font-extrabold uppercase tracking-[.18em] text-sky-200/80">Significado de cada estado</p>
+    <div class="mt-3 grid sm:grid-cols-3 gap-2.5">
+      <div class="flex items-center gap-3 bg-white/8 border border-white/10 rounded-xl px-4 py-3 bg-white/5">
+        <span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:#f39c12; box-shadow:0 0 12px #f39c12"></span>
+        <div><p class="font-bold text-[14px]">Pendiente</p><p class="text-[12px] text-sky-200/70">Recibido, por recoger</p></div>
+      </div>
+      <div class="flex items-center gap-3 border border-white/10 rounded-xl px-4 py-3 bg-white/5">
+        <span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:#3498db; box-shadow:0 0 12px #3498db"></span>
+        <div><p class="font-bold text-[14px]">En ruta</p><p class="text-[12px] text-sky-200/70">El moto va en camino</p></div>
+      </div>
+      <div class="flex items-center gap-3 border border-white/10 rounded-xl px-4 py-3 bg-white/5">
+        <span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:#27ae60; box-shadow:0 0 12px #27ae60"></span>
+        <div><p class="font-bold text-[14px]">Entregado</p><p class="text-[12px] text-sky-200/70">Recibido en destino</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ COBERTURA ═══════════ -->
+<section class="max-w-5xl mx-auto px-4 mt-8">
+  <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+      <div>
+        <p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Zona de cobertura</p>
+        <h2 class="mt-1 text-2xl font-extrabold text-[#1a3a52] tracking-tight">Operamos en 5 municipios</h2>
+        <p class="mt-1 text-[14px] text-slate-600">Mensajería ágil en moto por las vías de Cundinamarca.</p>
+      </div>
+      <a href="https://wa.me/573001234567?text=Hola%20Tranxport%2C%20quiero%20cotizar%20un%20env%C3%ADo" target="_blank" rel="noopener" class="shrink-0 inline-flex items-center justify-center gap-2 bg-[#1a3a52] hover:bg-[#0f2536] active:scale-95 transition text-white font-bold text-[14px] px-5 py-3 rounded-xl">
+        <i data-lucide="calculator" class="w-4 h-4"></i> Cotizar envío
+      </a>
+    </div>
+    <div class="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center hover:border-[#1a3a52]/40 hover:bg-sky-50 transition">
+        <i data-lucide="store" class="w-6 h-6 mx-auto text-[#1a3a52]"></i>
+        <p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">La Vega</p><p class="text-[11px] font-semibold text-slate-500">Base principal</p>
+      </div>
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center hover:border-[#1a3a52]/40 hover:bg-sky-50 transition">
+        <i data-lucide="church" class="w-6 h-6 mx-auto text-[#1a3a52]"></i>
+        <p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nocaima</p><p class="text-[11px] font-semibold text-slate-500">Panela y café</p>
+      </div>
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center hover:border-[#1a3a52]/40 hover:bg-sky-50 transition">
+        <i data-lucide="mountain" class="w-6 h-6 mx-auto text-[#1a3a52]"></i>
+        <p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nimaima</p><p class="text-[11px] font-semibold text-slate-500">Ruta Tobia</p>
+      </div>
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center hover:border-[#1a3a52]/40 hover:bg-sky-50 transition">
+        <i data-lucide="tent-tree" class="w-6 h-6 mx-auto text-[#1a3a52]"></i>
+        <p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Supatá</p><p class="text-[11px] font-semibold text-slate-500">Zona rural</p>
+      </div>
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center hover:border-[#1a3a52]/40 hover:bg-sky-50 transition col-span-2 sm:col-span-1">
+        <i data-lucide="landmark" class="w-6 h-6 mx-auto text-[#1a3a52]"></i>
+        <p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">San Francisco</p><p class="text-[11px] font-semibold text-slate-500">San Fran.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ AYUDA / FAQ ═══════════ -->
+<section id="ayuda" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
+  <div class="text-center">
+    <p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Preguntas frecuentes</p>
+    <h2 class="mt-1 text-2xl sm:text-3xl font-extrabold text-[#1a3a52] tracking-tight">¿Necesitas ayuda?</h2>
+  </div>
+  <div class="mt-5 grid gap-2.5 max-w-2xl mx-auto">
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden group">
+      <summary class="flex items-center justify-between gap-3 p-4 sm:p-5 font-bold text-[#1a3a52] text-[14.5px]">
+        <span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 text-[#1a3a52] shrink-0"><i data-lucide="key-round" class="w-4 h-4"></i></span> ¿Dónde encuentro mi código de rastreo?</span>
+        <i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i>
+      </summary>
+      <div class="px-4 sm:px-5 pb-5 pl-[68px] text-[13.5px] text-slate-600 leading-relaxed">Te lo enviamos por WhatsApp cuando confirmamos tu servicio. Siempre inicia con <span class="font-mono2 font-bold">TRX-</span> seguido de números, por ejemplo <span class="font-mono2 font-bold">TRX-001</span>.</div>
+    </details>
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <summary class="flex items-center justify-between gap-3 p-4 sm:p-5 font-bold text-[#1a3a52] text-[14.5px]">
+        <span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 text-[#1a3a52] shrink-0"><i data-lucide="user-search" class="w-4 h-4"></i></span> ¿Puedo buscar sin el código?</span>
+        <i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i>
+      </summary>
+      <div class="px-4 sm:px-5 pb-5 pl-[68px] text-[13.5px] text-slate-600 leading-relaxed">Sí. Escribe el <strong>nombre del cliente o negocio</strong> tal como lo registraste (ej: “Farmacia La Vega”) y el sistema lo buscará.</div>
+    </details>
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <summary class="flex items-center justify-between gap-3 p-4 sm:p-5 font-bold text-[#1a3a52] text-[14.5px]">
+        <span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 text-[#1a3a52] shrink-0"><i data-lucide="timer" class="w-4 h-4"></i></span> ¿Cuánto tarda un envío?</span>
+        <i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i>
+      </summary>
+      <div class="px-4 sm:px-5 pb-5 pl-[68px] text-[13.5px] text-slate-600 leading-relaxed">La mayoría de envíos entre nuestros 5 municipios se entregan el <strong>mismo día</strong>. Si tu pedido lleva más de 24h en “Pendiente”, escríbenos por WhatsApp.</div>
+    </details>
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <summary class="flex items-center justify-between gap-3 p-4 sm:p-5 font-bold text-[#1a3a52] text-[14.5px]">
+        <span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 text-[#1a3a52] shrink-0"><i data-lucide="circle-alert" class="w-4 h-4"></i></span> Dice “Pedido no encontrado”, ¿qué hago?</span>
+        <i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i>
+      </summary>
+      <div class="px-4 sm:px-5 pb-5 pl-[68px] text-[13.5px] text-slate-600 leading-relaxed">Verifica mayúsculas, guiones y espacios. Si el error continúa, contáctanos por WhatsApp con tu nombre y fecha del envío y lo resolvemos.</div>
+    </details>
+  </div>
+</section>
+
+<!-- ═══════════ ZONA TÉCNICA: DESPLIEGUE + API (para el fundador) ═══════════ -->
+<section id="tecnico" class="max-w-5xl mx-auto px-4 mt-10 scroll-mt-24">
+  <div class="rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm">
+    <div class="bg-gradient-to-r from-[#0f2536] to-[#1a3a52] p-5 sm:p-7 text-white">
+      <p class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[.18em] bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="wrench" class="w-3.5 h-3.5"></i> Zona del fundador · guía técnica</p>
+      <h2 class="mt-3 text-xl sm:text-2xl font-extrabold tracking-tight">Pon tu rastreador en línea en 10 minutos</h2>
+      <p class="mt-1 text-[13.5px] text-sky-100/80 max-w-2xl">Sigue estos pasos una sola vez. No necesitas saber programar: es copiar, pegar y arrastrar un archivo.</p>
+    </div>
+    <div class="bg-white p-5 sm:p-7 grid lg:grid-cols-2 gap-6">
+      <!-- Paso A: Apps Script -->
+      <div>
+        <h3 class="flex items-center gap-2 font-extrabold text-[#1a3a52] text-[16px]"><span class="grid place-items-center w-7 h-7 rounded-lg bg-[#1a3a52] text-white text-[13px] font-extrabold">A</span> Devuelve JSON desde Apps Script</h3>
+        <ol class="mt-3 space-y-2.5 text-[13.5px] text-slate-600 leading-relaxed list-none">
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-slate-100 text-[12px] font-extrabold text-[#1a3a52]">1</span><span>Abre tu <strong>Google Sheet de pedidos</strong> → <strong>Extensiones → Apps Script</strong>.</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-slate-100 text-[12px] font-extrabold text-[#1a3a52]">2</span><span>Borra el código actual y pega el código de abajo (botón <strong>Copiar</strong>).</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-slate-100 text-[12px] font-extrabold text-[#1a3a52]">3</span><span>Pulsa <strong>Implementar → Nueva implementación → Aplicación web</strong>.</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-slate-100 text-[12px] font-extrabold text-[#1a3a52]">4</span><span>En “Ejecutar como”: <strong>Yo</strong>. En acceso: <strong>Cualquier persona</strong>. Implementar y autoriza.</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-slate-100 text-[12px] font-extrabold text-[#1a3a52]">5</span><span>Copia la <strong>URL que termina en /exec</strong> y pégala en este archivo donde dice <span class="font-mono2 text-[12px] bg-slate-100 px-1.5 py-0.5 rounded font-bold">API_URL</span>.</span></li>
+        </ol>
+        <div class="mt-4 rounded-2xl overflow-hidden border border-[#0f2536]">
+          <div class="flex items-center justify-between bg-[#0f2536] px-4 py-2.5">
+            <span class="flex items-center gap-2 text-[12px] font-bold text-sky-200"><i data-lucide="file-code-2" class="w-4 h-4"></i> Code.gs — copiar y pegar</span>
+            <button id="copyGasBtn" class="inline-flex items-center gap-1.5 text-[12px] font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition text-white px-3 py-1.5 rounded-lg"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar</button>
+          </div>
+<pre id="gasCode" class="codebox bg-[#152c3f] text-[12px] leading-relaxed text-slate-100 p-4 font-mono2">function doGet(e) {
+  // Lee ?q=TRX-001 o ?q=nombre
+  var q = "";
+  if (e &amp;&amp; e.parameter &amp;&amp; e.parameter.q) {
+    q = e.parameter.q.toString().trim().toLowerCase();
+  }
+  // Nombre exacto de tu hoja
+  var sheet = SpreadsheetApp
+    .getActiveSpreadsheet().getSheetByName("Pedidos");
+  var rows = sheet.getDataRange().getValues();
+  // Fila 1 = encabezados: codigo|cliente|destino|fecha|estado
+  var found = null;
+  for (var i = 1; i &lt; rows.length; i++) {
+    var codigo  = rows[i][0].toString().trim();
+    var cliente = rows[i][1].toString().trim();
+    if (codigo.toLowerCase() === q ||
+        cliente.toLowerCase().indexOf(q) !== -1) {
+      found = {
+        codigo: codigo,
+        cliente: cliente,
+        destino: rows[i][2].toString().trim(),
+        fecha: rows[i][3].toString().trim(),
+        estado: rows[i][4].toString().trim()
+      };
+      break;
+    }
+  }
+  var out = found || { error: "Pedido no encontrado" };
+  return ContentService
+    .createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </div>
+      </div>
+      <!-- Paso B: Netlify -->
+      <div>
+        <h3 class="flex items-center gap-2 font-extrabold text-[#1a3a52] text-[16px]"><span class="grid place-items-center w-7 h-7 rounded-lg bg-[#27ae60] text-white text-[13px] font-extrabold">B</span> Publícalo gratis en Netlify Drop</h3>
+        <ol class="mt-3 space-y-2.5 text-[13.5px] text-slate-600 leading-relaxed">
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-emerald-50 text-[12px] font-extrabold text-emerald-700">1</span><span>Guarda esta página como archivo: en tu PC crea una carpeta <strong>tranxport</strong> y guarda este código como <strong class="font-mono2">index.html</strong> dentro.</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-emerald-50 text-[12px] font-extrabold text-emerald-700">2</span><span>Entra a <strong>app.netlify.com/drop</strong> (crea cuenta gratis si no tienes).</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-emerald-50 text-[12px] font-extrabold text-emerald-700">3</span><span><strong>Arrastra la carpeta</strong> completa a la zona que dice “Drag and drop”. Espera 20 segundos.</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-emerald-50 text-[12px] font-extrabold text-emerald-700">4</span><span>Netlify te dará un enlace como <span class="font-mono2 text-[12px] bg-slate-100 px-1.5 py-0.5 rounded">tranxport-rastreo.netlify.app</span>. ¡Ese es tu sitio en vivo!</span></li>
+          <li class="flex gap-2.5"><span class="shrink-0 w-6 h-6 grid place-items-center rounded-full bg-emerald-50 text-[12px] font-extrabold text-emerald-700">5</span><span>Comparte ese enlace por <strong>WhatsApp</strong> a tus clientes. Cada vez que edites el <span class="font-mono2">index.html</span>, vuelve a arrastrarlo para actualizar.</span></li>
+        </ol>
+        <div class="mt-4 rounded-2xl bg-sky-50 border border-sky-200 p-4 flex gap-3">
+          <i data-lucide="lightbulb" class="w-5 h-5 text-sky-600 shrink-0 mt-0.5"></i>
+          <p class="text-[13px] text-sky-900 leading-relaxed"><strong>Truco pro:</strong> en Netlify ve a <em>Site settings → Change site name</em> y ponle <span class="font-mono2 font-bold">rastreo-tranxport</span> para un enlace fácil de recordar y compartir.</p>
+        </div>
+        <div class="mt-3 rounded-2xl bg-slate-50 border border-slate-200 p-4 flex gap-3">
+          <i data-lucide="triangle-alert" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+          <p class="text-[13px] text-slate-600 leading-relaxed"><strong class="text-[#1a3a52]">¿Ves datos de ejemplo?</strong> Es el modo demo. Desaparece automáticamente en cuanto pegues tu <strong>URL real de /exec</strong> en la constante <span class="font-mono2 font-bold">API_URL</span> del código.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CTA FINAL ═══════════ -->
+<section class="max-w-5xl mx-auto px-4 mt-8 mb-6">
+  <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a3a52] via-[#1e4765] to-[#0f2536] p-6 sm:p-10 text-white text-center">
+    <div class="absolute inset-0 map-grid opacity-60"></div>
+    <div class="relative">
+      <span class="inline-grid place-items-center w-14 h-14 rounded-2xl bg-white/10 border border-white/15 mb-4"><i data-lucide="bike" class="w-7 h-7"></i></span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">¿Tienes un paquete por enviar?</h2>
+      <p class="mt-2 text-sky-100/85 text-[14.5px] max-w-md mx-auto">Cotiza por WhatsApp en menos de un minuto. Recogemos en La Vega y entregamos el mismo día.</p>
+      <div class="mt-5 flex flex-col sm:flex-row gap-2.5 justify-center">
+        <a href="https://wa.me/573001234567?text=Hola%20Tranxport%2C%20quiero%20enviar%20un%20paquete" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1fb857] active:scale-95 transition text-white font-extrabold text-[15px] px-7 py-4 rounded-2xl shadow-lg">
+          <i data-lucide="message-circle" class="w-5 h-5"></i> Cotizar por WhatsApp
+        </a>
+        <a href="#inicio" class="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 active:scale-95 transition text-white font-bold text-[15px] px-7 py-4 rounded-2xl">
+          <i data-lucide="search" class="w-5 h-5"></i> Rastrear otro pedido
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="border-t border-slate-200 bg-white">
+  <div class="max-w-5xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5">
+      <span class="grid place-items-center w-8 h-8 rounded-xl bg-[#1a3a52] text-white"><i data-lucide="bike" class="w-4 h-4"></i></span>
+      <div class="leading-tight">
+        <p class="font-extrabold text-[#1a3a52] text-[14px]">Tranxport · Mensajería en moto</p>
+        <p class="text-[12px] text-slate-500">La Vega · Nocaima · Nimaima · Supatá · San Francisco</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 text-[12.5px] font-semibold text-slate-500">
+      <a href="#tecnico" class="hover:text-[#1a3a52] transition inline-flex items-center gap-1"><i data-lucide="settings-2" class="w-3.5 h-3.5"></i> Configuración</a>
+      <span class="text-slate-300">|</span>
+      <span class="inline-flex items-center gap-1"><i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-500"></i> Carga ultrarrápida</span>
+    </div>
+  </div>
+  <p class="text-center text-[11.5px] text-slate-400 pb-5">© 2026 Tranxport. Hecho con orgullo en Cundinamarca, Colombia.</p>
+</footer>
+
+<!-- Botón flotante WhatsApp -->
+<a href="https://wa.me/573001234567?text=Hola%20Tranxport%2C%20necesito%20ayuda" target="_blank" rel="noopener" aria-label="WhatsApp"
+   class="wa-pulse fixed bottom-5 right-5 z-40 grid place-items-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-xl shadow-green-600/30 hover:scale-105 active:scale-95 transition">
+  <i data-lucide="message-circle" class="w-7 h-7"></i>
+</a>
+
+<!-- Toast -->
+<div id="toast" class="fixed left-1/2 bottom-6 z-50 -translate-x-1/2 translate-y-24 opacity-0 pointer-events-none">
+  <div class="flex items-center gap-2 bg-[#1a3a52] text-white text-[13.5px] font-bold px-4 py-3 rounded-2xl shadow-2xl whitespace-nowrap">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-300"></i><span id="toastMsg">Copiado</span>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ★★★ CONFIGURACIÓN — LEE ESTO PRIMERO (FUNDADOR) ★★★
+   ───────────────────────────────────────────────────────────────
+   1. Publica tu Google Apps Script como "Aplicación web" con
+      acceso "Cualquier persona" y copia la URL que termina en /exec
+   2. Pégala abajo reemplazando el texto de ejemplo.
+      Ejemplo:
+      const API_URL = "https://script.google.com/macros/s/AKfyc.../exec";
+   3. Guarda el archivo y súbelo a Netlify Drop. ¡Listo!
+   ───────────────────────────────────────────────────────────────
+   Mientras API_URL tenga el valor de ejemplo, la página funciona
+   en MODO DEMO con datos de prueba para que puedas ver el diseño.
+   ═══════════════════════════════════════════════════════════════ */
+const API_URL = "PEGA_AQUI_TU_URL_DE_GOOGLE_APPS_SCRIPT_QUE_TERMINA_EN_/exec";
+// Número de WhatsApp de Tranxport (código país + número, sin + ni espacios)
+const WHATSAPP_NUMBER = "573001234567";
+
+/* ── Datos de demostración (solo se usan si aún no configuras API_URL) ── */
+const DEMO_DATA = [
+  { codigo: "TRX-001", cliente: "Farmacia La Vega", destino: "Nocaima", fecha: "04/10/2026", estado: "En ruta" },
+  { codigo: "TRX-002", cliente: "Panadería El Trigal", destino: "San Francisco", fecha: "04/10/2026", estado: "Pendiente" },
+  { codigo: "TRX-003", cliente: "Droguería Central", destino: "Supatá", fecha: "03/10/2026", estado: "Entregado" },
+  { codigo: "TRX-004", cliente: "Tienda Don Pedro", destino: "Nimaima", fecha: "03/10/2026", estado: "En ruta" },
+];
+
+/* ── Referencias al DOM ── */
+const form = document.getElementById("searchForm");
+const input = document.getElementById("searchInput");
+const clearBtn = document.getElementById("clearBtn");
+const searchBtn = document.getElementById("searchBtn");
+const searchBtnContent = document.getElementById("searchBtnContent");
+const loadingState = document.getElementById("loadingState");
+const resultCard = document.getElementById("resultCard");
+const notFoundState = document.getElementById("notFoundState");
+const networkErrorState = document.getElementById("networkErrorState");
+const recentWrap = document.getElementById("recentWrap");
+const recentChips = document.getElementById("recentChips");
+
+/* ── Colores dinámicos por estado (según requerimiento) ── */
+const STATUS_STYLE = {
+  "pendiente": { bg: "#f39c12", label: "Pendiente", icon: "clock" },
+  "en ruta":   { bg: "#3498db", label: "En ruta",   icon: "bike" },
+  "entregado": { bg: "#27ae60", label: "Entregado", icon: "package-check" },
+};
+function getStatus(estadoRaw) {
+  const key = (estadoRaw || "").toString().trim().toLowerCase();
+  return STATUS_STYLE[key] || { bg: "#1a3a52", label: estadoRaw || "—", icon: "package" };
+}
+
+/* ── Utilidades de UI ── */
+function hideAllStates() {
+  loadingState.classList.add("hidden");
+  resultCard.classList.add("hidden");
+  notFoundState.classList.add("hidden");
+  networkErrorState.classList.add("hidden");
+  resultCard.innerHTML = "";
+}
+function setBtnLoading(isLoading) {
+  searchBtn.disabled = isLoading;
+  searchBtn.classList.toggle("opacity-80", isLoading);
+  searchBtn.classList.toggle("cursor-wait", isLoading);
+  searchBtnContent.innerHTML = isLoading
+    ? '<span class="spinner"></span> Buscando...'
+    : '<i data-lucide="search" class="w-5 h-5"></i> Rastrear pedido';
+  if (window.lucide) lucide.createIcons();
+}
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  document.getElementById("toastMsg").textContent = msg;
+  toast.classList.remove("translate-y-24", "opacity-0");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.add("translate-y-24", "opacity-0"), 2200);
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ── Historial reciente (localStorage) ── */
+function getRecent() {
+  try { return JSON.parse(localStorage.getItem("trx_recent") || "[]"); } catch { return []; }
+}
+function saveRecent(q) {
+  try {
+    let arr = getRecent().filter(x => x.toLowerCase() !== q.toLowerCase());
+    arr.unshift(q);
+    localStorage.setItem("trx_recent", JSON.stringify(arr.slice(0, 5)));
+    renderRecent();
+  } catch {}
+}
+function renderRecent() {
+  const arr = getRecent();
+  if (!arr.length) { recentWrap.classList.add("hidden"); return; }
+  recentWrap.classList.remove("hidden");
+  recentChips.innerHTML = arr.map(q =>
+    `<button data-recent="${q.replace(/"/g, "&quot;")}" class="recent-chip inline-flex items-center gap-1.5 text-[12px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full active:scale-95 transition"><i data-lucide="history" class="w-3 h-3"></i>${q}</button>`
+  ).join("");
+  if (window.lucide) lucide.createIcons();
+  recentChips.querySelectorAll(".recent-chip").forEach(b =>
+    b.addEventListener("click", () => { input.value = b.dataset.recent; doSearch(); })
+  );
+}
+
+/* ── Render de la tarjeta de resultado ── */
+function renderResult(data) {
+  const st = getStatus(data.estado);
+  const estadoKey = (data.estado || "").toLowerCase();
+  const stepIndex = estadoKey.includes("entreg") ? 3 : estadoKey.includes("ruta") ? 2 : 1;
+  const pct = stepIndex === 3 ? 100 : stepIndex === 2 ? 55 : 12;
+  const waText = encodeURIComponent(`Hola Tranxport, consulto por mi pedido ${data.codigo} (${data.cliente}) con destino a ${data.destino}. Estado: ${data.estado}`);
+
+  resultCard.innerHTML = `
+    <div class="animate-slideUp rounded-2xl border border-slate-200 overflow-hidden shadow-lg shadow-[#1a3a52]/10">
+      <!-- Encabezado con estado -->
+      <div class="p-4 sm:p-5 text-white relative overflow-hidden" style="background:linear-gradient(135deg, ${st.bg}, ${st.bg}dd)">
+        <div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-white/15 blur-2xl"></div>
+        <div class="relative flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[11px] font-extrabold uppercase tracking-[.18em] text-white/80">Código de rastreo</p>
+            <p class="font-mono2 text-[22px] sm:text-2xl font-bold tracking-tight">${escapeHtml(data.codigo)}</p>
+          </div>
+          <span class="shrink-0 inline-flex items-center gap-1.5 bg-white text-[12.5px] font-extrabold px-3.5 py-2 rounded-full shadow" style="color:${st.bg}">
+            <i data-lucide="${st.icon}" class="w-4 h-4"></i> ${escapeHtml(st.label)}
+          </span>
+        </div>
+      </div>
+      <!-- Datos -->
+      <div class="bg-white p-4 sm:p-5">
+        <div class="grid grid-cols-1 gap-2.5">
+          <div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-3">
+            <span class="grid place-items-center w-9 h-9 rounded-xl bg-[#1a3a52]/8 bg-sky-50 text-[#1a3a52] shrink-0"><i data-lucide="user" class="w-4.5 h-4.5"></i></span>
+            <div class="min-w-0"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cliente</p><p class="font-bold text-[#1a3a52] text-[14.5px] truncate">${escapeHtml(data.cliente)}</p></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-3">
+              <span class="grid place-items-center w-9 h-9 rounded-xl bg-sky-50 text-sky-600 shrink-0"><i data-lucide="map-pin" class="w-4 h-4"></i></span>
+              <div class="min-w-0"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Destino</p><p class="font-bold text-[#1a3a52] text-[14.5px] truncate">${escapeHtml(data.destino)}</p></div>
+            </div>
+            <div class="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-3">
+              <span class="grid place-items-center w-9 h-9 rounded-xl bg-sky-50 text-sky-600 shrink-0"><i data-lucide="calendar" class="w-4 h-4"></i></span>
+              <div class="min-w-0"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Fecha</p><p class="font-bold text-[#1a3a52] text-[14.5px] truncate">${escapeHtml(data.fecha)}</p></div>
+            </div>
+          </div>
+        </div>
+        <!-- Línea de tiempo -->
+        <div class="mt-4 pt-4 border-t border-dashed border-slate-200">
+          <div class="flex justify-between text-[11px] font-extrabold uppercase tracking-wider mb-2">
+            <span class="${stepIndex >= 1 ? "text-[#1a3a52]" : "text-slate-300"}">Pendiente</span>
+            <span class="${stepIndex >= 2 ? "text-[#1a3a52]" : "text-slate-300"}">En ruta</span>
+            <span class="${stepIndex >= 3 ? "text-[#1a3a52]" : "text-slate-300"}">Entregado</span>
+          </div>
+          <div class="relative h-2.5 rounded-full bg-slate-100 overflow-hidden">
+            <div class="progress-fill absolute inset-y-0 left-0 rounded-full" style="width:${pct}%; background:linear-gradient(90deg,#f39c12,#3498db,#27ae60)"></div>
+          </div>
+          <div class="mt-3 flex items-center gap-2">
+            <span class="step-dot grid place-items-center w-8 h-8 rounded-full text-white shrink-0" style="background:${st.bg}"><i data-lucide="${st.icon}" class="w-4 h-4"></i></span>
+            <p class="text-[13px] text-slate-600"><strong class="text-[#1a3a52]">${escapeHtml(st.label)}</strong> — ${stepMessage(stepIndex)}</p>
+          </div>
+        </div>
+        <!-- Acciones -->
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waText}" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 bg-[#25D366] hover:bg-[#1fb857] active:scale-95 transition text-white font-bold text-[13px] px-3 py-3 rounded-xl">
+            <i data-lucide="message-circle" class="w-4 h-4"></i> Preguntar
+          </a>
+          <button id="shareBtn" class="inline-flex items-center justify-center gap-1.5 bg-[#1a3a52] hover:bg-[#0f2536] active:scale-95 transition text-white font-bold text-[13px] px-3 py-3 rounded-xl">
+            <i data-lucide="share-2" class="w-4 h-4"></i> Compartir
+          </button>
+        </div>
+      </div>
+    </div>`;
+  resultCard.classList.remove("hidden");
+  if (window.lucide) lucide.createIcons();
+  // Scroll suave a la tarjeta en móvil
+  setTimeout(() => resultCard.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80);
+  // Botón compartir
+  document.getElementById("shareBtn")?.addEventListener("click", async () => {
+    const text = `Mi pedido ${data.codigo} (${data.cliente} → ${data.destino}) está: ${data.estado}. Rastréalo en Tranxport.`;
+    if (navigator.share) { try { await navigator.share({ title: "Rastreo Tranxport", text }); } catch {} }
+    else { try { await navigator.clipboard.writeText(text); showToast("Texto copiado al portapapeles"); } catch { showToast("No se pudo copiar"); } }
+  });
+}
+function stepMessage(i) {
+  if (i === 3) return "tu paquete ya llegó a su destino.";
+  if (i === 2) return "nuestro motorizado va en camino.";
+  return "recibimos tu pedido, pronto lo recogemos.";
+}
+function escapeHtml(s) {
+  return (s ?? "—").toString().replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ── Búsqueda en modo demo (sin API configurada) ── */
+function searchDemo(q) {
+  const needle = q.trim().toLowerCase();
+  return DEMO_DATA.find(d =>
+    d.codigo.toLowerCase() === needle ||
+    d.cliente.toLowerCase().includes(needle) ||
+    d.codigo.toLowerCase().includes(needle)
+  ) || null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FUNCIÓN PRINCIPAL DE BÚSQUEDA — usa fetch() a la API
+   ══════════════════════════════════════════════════════════ */
+async function doSearch() {
+  const q = input.value.trim();
+  if (!q) { showToast("Escribe un código o nombre primero"); input.focus(); return; }
+
+  hideAllStates();
+  setBtnLoading(true);
+  loadingState.classList.remove("hidden");
+
+  // ¿La API ya fue configurada? Si no, usamos demo con retardo realista.
+  const apiConfigured = API_URL && API_URL.startsWith("https://") && !API_URL.includes("PEGA_AQUI");
+
+  try {
+    let data = null;
+    if (!apiConfigured) {
+      // MODO DEMO (temporal, hasta que pegues tu URL real)
+      await new Promise(r => setTimeout(r, 1100));
+      data = searchDemo(q);
+    } else {
+      // MODO REAL: petición GET a Google Apps Script → ?q=VALOR
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15s de espera máxima
+      const res = await fetch(API_URL + "?q=" + encodeURIComponent(q), {
+        method: "GET",
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      data = await res.json();
+      // Si la API devuelve un arreglo, tomamos el primer resultado
+      if (Array.isArray(data)) data = data[0] || null;
+    }
+
+    loadingState.classList.add("hidden");
+    setBtnLoading(false);
+
+    // ¿Encontrado? Debe tener "codigo" y NO traer "error"
+    if (data && !data.error && data.codigo) {
+      saveRecent(q);
+      renderResult(data);
+      if (!apiConfigured) showToast("Modo demo — pega tu API_URL para datos reales");
+    } else {
+      notFoundState.classList.remove("hidden");
+      notFoundState.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  } catch (err) {
+    // Error de red, timeout o API caída
+    console.error("Error al consultar la API:", err);
+    loadingState.classList.add("hidden");
+    setBtnLoading(false);
+    networkErrorState.classList.remove("hidden");
+    networkErrorState.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+/* ── Eventos ── */
+form.addEventListener("submit", e => { e.preventDefault(); doSearch(); });
+document.getElementById("retryBtn").addEventListener("click", doSearch);
+input.addEventListener("input", () => clearBtn.classList.toggle("hidden", !input.value));
+clearBtn.addEventListener("click", () => { input.value = ""; clearBtn.classList.add("hidden"); input.focus(); });
+document.querySelectorAll(".demo-chip").forEach(b =>
+  b.addEventListener("click", () => { input.value = b.dataset.demo; clearBtn.classList.remove("hidden"); doSearch(); })
+);
+// Leer ?q= de la URL (útil para enlaces directos desde WhatsApp: misitio.com/?q=TRX-001)
+(function autoSearchFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const q = (params.get("q") || "").trim();
+  if (q) { input.value = q; clearBtn.classList.remove("hidden"); doSearch(); }
+})();
+
+/* ── Botón copiar código GAS ── */
+document.getElementById("copyGasBtn").addEventListener("click", async () => {
+  const code = document.getElementById("gasCode").innerText;
+  try { await navigator.clipboard.writeText(code); showToast("Código copiado — pégalo en Apps Script"); }
+  catch { showToast("No se pudo copiar, selecciónalo manual"); }
+});
+
+/* ── Init ── */
+renderRecent();
+if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

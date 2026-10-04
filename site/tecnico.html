@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Zona del fundador — Tranxport</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#0f2536" />
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{ font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:#f4f4f4; color:#15212c; }
+  .font-mono2{ font-family:'JetBrains Mono',monospace; }
+  :focus-visible{ outline:3px solid #f39c12; outline-offset:2px; }
+  pre.codebox{ white-space:pre; overflow-x:auto; }
+  pre.codebox::-webkit-scrollbar{ height:8px; }
+  pre.codebox::-webkit-scrollbar-thumb{ background:#334d61; border-radius:99px; }
+  #gate{ backdrop-filter: blur(8px); }
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .shake{ animation:shake .3s ease 2; }
+  details>summary{ list-style:none; cursor:pointer; }
+  details>summary::-webkit-details-marker{ display:none; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<!-- ═══ PUERTA CON CONTRASEÑA ═══ -->
+<div id="gate" class="fixed inset-0 z-50 grid place-items-center bg-[#0f2536]/90 p-4">
+  <form id="gateForm" class="w-full max-w-sm bg-white rounded-3xl p-6 sm:p-8 shadow-2xl text-center">
+    <span class="inline-grid place-items-center w-14 h-14 rounded-2xl bg-[#1a3a52] text-white mb-4"><i data-lucide="lock" class="w-7 h-7"></i></span>
+    <h1 class="text-xl font-extrabold text-[#1a3a52] tracking-tight">Zona del fundador</h1>
+    <p class="mt-1 text-[13.5px] text-slate-500">Contenido privado. Escribe la contraseña.</p>
+    <label for="gatePass" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Contraseña</label>
+    <input id="gatePass" type="password" autocomplete="current-password" placeholder="Contraseña"
+      class="mt-4 w-full bg-slate-100 border-2 border-slate-200 rounded-2xl px-4 py-3.5 text-[16px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52] text-center" />
+    <p id="gateError" hidden class="mt-2 text-[13px] font-bold text-red-600">Contraseña incorrecta.</p>
+    <button type="submit" class="mt-3 w-full bg-[#1a3a52] hover:bg-[#0f2536] active:scale-[.98] transition text-white font-extrabold text-[15px] py-3.5 rounded-2xl">Desbloquear</button>
+    <a href="index.html" class="mt-3 inline-block text-[13px] font-bold text-slate-500 hover:text-[#1a3a52]">← Volver al rastreador</a>
+  </form>
+</div>
+
+<!-- ═══ CONTENIDO PRIVADO ═══ -->
+<div id="contenido" hidden>
+<header class="bg-[#0f2536] text-white">
+  <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+    <p class="font-extrabold tracking-tight">🔧 Zona del fundador <span class="font-mono2 text-[11px] font-normal text-sky-200/70">tecnico.html · noindex</span></p>
+    <div class="flex items-center gap-2">
+      <a href="index.html" class="text-[13px] font-bold bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-xl transition">← Rastreador</a>
+      <button id="lockBtn" class="text-[13px] font-bold bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-xl transition">Bloquear</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 py-8">
+  <p class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[.18em] bg-[#1a3a52] text-white px-3 py-1.5 rounded-full"><i data-lucide="wrench" class="w-3.5 h-3.5"></i> Guía técnica</p>
+  <h1 class="mt-3 text-2xl sm:text-3xl font-extrabold text-[#1a3a52] tracking-tight">Pon tu rastreador en línea en 10 minutos</h1>
+  <p class="mt-1 text-[14px] text-slate-600">Una sola vez. Copiar, pegar y arrastrar. Esta página no está enlazada desde el sitio público.</p>
+
+  <div class="mt-6 grid lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-sm">
+      <h2 class="flex items-center gap-2 font-extrabold text-[#1a3a52] text-[16px]"><span class="grid place-items-center w-7 h-7 rounded-lg bg-[#1a3a52] text-white text-[13px]">A</span> Devuelve JSON desde Apps Script</h2>
+      <ol class="mt-3 space-y-2.5 text-[13.5px] text-slate-600">
+        <li>1. Sheet → <strong>Extensiones → Apps Script</strong>.</li>
+        <li>2. Pega el código de abajo (botón <strong>Copiar</strong>). El código completo también está en <span class="font-mono2 bg-slate-100 px-1 rounded">AppsScript/Codigo.gs</span> del repo.</li>
+        <li>3. <strong>Implementar → Nueva implementación → App web</strong>.</li>
+        <li>4. Ejecutar como <strong>Yo</strong>, acceso <strong>Cualquier persona</strong> (anónimo, no la opción "con cuenta de Google").</li>
+        <li>5. Copia URL <strong>/exec</strong> → pégala en <span class="font-mono2 bg-slate-100 px-1 rounded">API_URL</span> de <span class="font-mono2 bg-slate-100 px-1 rounded">site/index.html</span>.</li>
+      </ol>
+      <div class="mt-4 rounded-2xl overflow-hidden border border-[#0f2536]">
+        <div class="flex items-center justify-between bg-[#0f2536] px-4 py-2.5"><span class="text-[12px] font-bold text-sky-200">Code.gs — doGet</span><button id="copyGasBtn" class="text-[12px] font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg">Copiar</button></div>
+<pre id="gasCode" class="codebox bg-[#152c3f] text-[12px] text-slate-100 p-4 font-mono2">function doGet(e) {
+  var q = (e &amp;&amp; e.parameter &amp;&amp; e.parameter.q)
+    ? e.parameter.q.toString().trim().toLowerCase() : "";
+  var sheet = SpreadsheetApp
+    .getActiveSpreadsheet().getSheets()[0];
+  var rows = sheet.getDataRange().getValues();
+  var out = [];
+  for (var i = 1; i &lt; rows.length; i++) {
+    var r = rows[i];
+    var codigo  = String(r[24] || "").trim();
+    var cliente = String(r[17] || r[2] || "").trim();
+    var muni = String(r[7] || "").trim();
+    var dir  = String(r[19] || "").trim();
+    var destino = muni + (muni &amp;&amp; dir ? " — " + dir : dir);
+    var f = r[10] || r[0] || "";
+    var d = (f instanceof Date) ? f : new Date(f);
+    var fecha = (!isNaN(d.getTime()))
+      ? ("0"+d.getDate()).slice(-2)+"/"
+        +("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear()
+      : String(f).trim();
+    var estado = String(r[20] || "").trim();
+    if (!codigo &amp;&amp; !cliente) continue;
+    if (!q || codigo.toLowerCase() === q ||
+        cliente.toLowerCase().indexOf(q) !== -1 ||
+        destino.toLowerCase().indexOf(q) !== -1) {
+      out.push({ codigo: codigo, cliente: cliente,
+        destino: destino, fecha: fecha, estado: estado });
+    }
+  }
+  var res = out.length === 1 ? out[0]
+    : out.length &gt; 1 ? out
+    : { error: "Pedido no encontrado" };
+  return ContentService
+    .createTextOutput(JSON.stringify(res))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+      </div>
+      <details class="mt-3 text-[13px] text-slate-600 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <summary class="font-bold text-[#1a3a52]">Ver configuración actual del sitio</summary>
+        <p class="mt-2">API_URL: <span class="font-mono2 text-[12px] break-all">https://script.google.com/macros/s/AKfycbwFLylcZER06QCtcU4K5n5vll6Qd9Gg_Uf3mxOytvZJ85u18yexaqOnNtCSwj3PJgosGg/exec</span></p>
+        <p class="mt-1">WhatsApp: <span class="font-mono2 text-[12px]">573222550163</span> · Email: <span class="font-mono2 text-[12px]">tranxportx@gmail.com</span></p>
+      </details>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-7 shadow-sm">
+      <h2 class="flex items-center gap-2 font-extrabold text-[#1a3a52] text-[16px]"><span class="grid place-items-center w-7 h-7 rounded-lg bg-[#27ae60] text-white text-[13px]">B</span> Publícalo gratis en Netlify</h2>
+      <ol class="mt-3 space-y-2.5 text-[13.5px] text-slate-600">
+        <li>1. Sube la carpeta <span class="font-mono2 font-bold">site/</span> completa (<span class="font-mono2">index.html</span> + <span class="font-mono2">tecnico.html</span>) a <strong>app.netlify.com/drop</strong>.</li>
+        <li>2. Netlify te da un enlace como <span class="font-mono2 text-[12px] bg-slate-100 px-1.5 py-0.5 rounded">tranxport-rastreo.netlify.app</span>.</li>
+        <li>3. Comparte el <span class="font-mono2">index.html</span> por WhatsApp. <strong>No compartas</strong> el <span class="font-mono2">tecnico.html</span>.</li>
+        <li>4. Usa <span class="font-mono2">?q=TRX-001</span> para links directos de rastreo.</li>
+        <li>5. En Site settings cambia el nombre a <span class="font-mono2 font-bold">rastreo-tranxport</span>.</li>
+      </ol>
+      <div class="mt-4 rounded-2xl bg-amber-50 border border-amber-200 p-4 text-[13px] text-amber-900">
+        <strong>Seguridad honesta:</strong> esta clave es una cortina (el navegador la verifica), no una bóveda: alguien con conocimientos puede ver el código fuente. Suficiente para mantener curiosos fuera; no guardes aquí secretos reales (el apikey de CallMeBot vive solo en Apps Script).
+      </div>
+      <details class="mt-3 text-[13px] text-slate-600 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <summary class="font-bold text-[#1a3a52]">¿Cómo cambio la contraseña?</summary>
+        <p class="mt-2">Calcula el SHA-256 de la nueva clave y reemplázalo en la constante <span class="font-mono2 font-bold">PASS_HASH</span> de este archivo. En Node: <span class="font-mono2 text-[12px]">node -e "console.log(require('crypto').createHash('sha256').update('NUEVA').digest('hex'))"</span></p>
+      </details>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+/* SHA-256 de la contraseña. Para cambiarla, ver instrucciones en la página. */
+const PASS_HASH = "067385100fcbba76a212e96406d4dfb2765131018cae36e4f6136191694a1ed4";
+const gate = document.getElementById("gate");
+const contenido = document.getElementById("contenido");
+async function sha256(t) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+function unlock() {
+  gate.hidden = true;
+  contenido.hidden = false;
+  try { sessionStorage.setItem("trx_admin", "1"); } catch {}
+  if (window.lucide) lucide.createIcons();
+}
+document.getElementById("gateForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const v = document.getElementById("gatePass").value;
+  let h = "";
+  try { h = await sha256(v); } catch { h = ""; }
+  if (h && h === PASS_HASH) {
+    document.getElementById("gateError").hidden = true;
+    unlock();
+  } else {
+    document.getElementById("gateError").hidden = false;
+    const f = document.getElementById("gateForm");
+    f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
+  }
+});
+document.getElementById("lockBtn").addEventListener("click", () => {
+  try { sessionStorage.removeItem("trx_admin"); } catch {}
+  location.reload();
+});
+document.getElementById("copyGasBtn").addEventListener("click", async () => {
+  const code = document.getElementById("gasCode").innerText;
+  try { await navigator.clipboard.writeText(code); } catch {}
+});
+try {
+  if (sessionStorage.getItem("trx_admin") === "1") unlock();
+} catch {}
+if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

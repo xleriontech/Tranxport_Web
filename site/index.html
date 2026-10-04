@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Rastreo Tranxport — Mensajería en moto | La Vega y alrededores</title>
+<meta name="description" content="Rastrea tu pedido Tranxport. Mensajería y domicilios en moto en La Vega, Nocaima, Nimaima, Supatá y San Francisco. Tarifas, cobertura y cotización por WhatsApp." />
+<meta name="theme-color" content="#1a3a52" />
+<meta name="format-detection" content="telephone=no" />
+<meta property="og:title" content="Rastreo Tranxport" />
+<meta property="og:description" content="Consulta si tu pedido está pendiente, en ruta o entregado. Mensajería en moto por la provincia de Gualivá." />
+<meta property="og:locale" content="es_CO" />
+<meta property="og:type" content="website" />
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://script.google.com" />
+<link rel="preconnect" href="https://script.googleusercontent.com" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root{ --navy:#1a3a52; --navy-deep:#0f2536; --bg:#f4f4f4; --pend:#f39c12; --ruta:#3498db; --ok:#27ae60; }
+html{ scroll-behavior:smooth; color-scheme:light; }
+body{ font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg); color:#15212c; -webkit-tap-highlight-color:transparent; }
+.font-mono2{ font-family:'JetBrains Mono',monospace; }
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+:focus-visible{ outline:3px solid var(--pend); outline-offset:2px; }
+.map-grid{ background-image:linear-gradient(rgba(26,58,82,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(26,58,82,.07) 1px,transparent 1px); background-size:28px 28px; mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,black 40%,transparent 80%); }
+.route-dash{ background-image:linear-gradient(90deg,#1a3a52 55%,transparent 45%); background-size:12px 2px; background-repeat:repeat-x; height:2px; }
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.8);opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.animate-slideUp{animation:slideUp .45s cubic-bezier(.21,1.02,.73,1) both}
+.animate-floaty{animation:floaty 5s ease-in-out infinite}
+.spinner{width:22px;height:22px;border-radius:9999px;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;animation:spin .7s linear infinite}
+.spinner-dark{width:40px;height:40px;border-radius:9999px;border:4px solid #dbe7ef;border-top-color:var(--navy);animation:spin .8s linear infinite}
+.skeleton{background:linear-gradient(90deg,#e8edf1 25%,#f5f8fa 50%,#e8edf1 75%);background-size:800px 100%;animation:shimmer 1.2s infinite linear}
+.step-dot{transition:all .4s cubic-bezier(.21,1.02,.73,1)}
+.progress-fill{transition:width .9s cubic-bezier(.21,1.02,.73,1)}
+.search-glow:focus-within{box-shadow:0 0 0 4px rgba(26,58,82,.12),0 12px 32px -8px rgba(26,58,82,.25);border-color:var(--navy)}
+details>summary{list-style:none;cursor:pointer}
+details>summary::-webkit-details-marker{display:none}
+details[open] .chev{transform:rotate(180deg)}
+.chev{transition:transform .3s ease}
+pre.codebox{white-space:pre;overflow-x:auto}
+#toast{transition:transform .35s cubic-bezier(.21,1.02,.73,1),opacity .3s}
+.wa-pulse::before{content:'';position:absolute;inset:0;border-radius:9999px;background:#25D366;animation:pulse-ring 1.8s ease-out infinite;z-index:-1}
+/* Mapa interactivo (heredado model1) */
+.pin .nucleo{fill:var(--navy)} .pin text{fill:var(--navy);font-size:11px;font-weight:700}
+.pin .halo{fill:none;stroke:var(--pend);stroke-width:2;opacity:0}
+.pin.activo .nucleo{fill:var(--pend)} .pin.activo .halo{opacity:1;transform-origin:center;transform-box:fill-box;animation:pulse-ring 1.6s ease-out infinite}
+.pin.dest-ruta .nucleo{fill:#3498db} .pin.dest-ruta .halo{stroke:#3498db}
+.pin.dest-ok .nucleo{fill:#27ae60} .pin.dest-ok .halo{stroke:#27ae60}
+#ruta-progreso{transition:stroke .4s}
+svg.mapa-ruta #ruta-progreso{stroke:#3498db;stroke-width:3;stroke-dasharray:8 8;animation:marcha 1s linear infinite}
+@keyframes marcha{to{stroke-dashoffset:-16}}
+svg.mapa-ok #ruta-progreso{stroke:#27ae60;stroke-width:3.5;stroke-dasharray:640 640;stroke-dashoffset:640;animation:dibujar 1.4s ease forwards}
+@keyframes dibujar{to{stroke-dashoffset:0}}
+.mapa-chip{position:absolute;top:10px;left:10px;right:10px;text-align:center;font-size:12.5px;font-weight:800;padding:8px 12px;border-radius:12px;box-shadow:0 8px 20px rgba(15,37,54,.25);z-index:2}
+.mapa-chip.ok{background:#27ae60;color:#fff} .mapa-chip.ruta{background:#3498db;color:#fff} .mapa-chip.pend{background:#f39c12;color:#1a3a52}
+.lista-munis li.activo{background:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important}
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *,*::before,*::after{animation:none!important;transition:none!important} }
+@media print{ header,.no-print,form,#toast,.wa-pulse,footer section{display:none!important} body{background:#fff} }
+</style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"LocalBusiness","name":"Tranxport","description":"Mensajería y logística en moto en La Vega, Nocaima, Nimaima, Supatá y San Francisco, Cundinamarca.","areaServed":["La Vega","Nocaima","Nimaima","Supatá","San Francisco"],"address":{"@type":"PostalAddress","addressRegion":"Cundinamarca","addressCountry":"CO"}}
+</script>
+</head>
+<body class="min-h-screen antialiased">
+
+<header class="sticky top-0 z-40 bg-[#1a3a52]/95 backdrop-blur-md border-b border-white/10 shadow-lg shadow-[#1a3a52]/20">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+    <a href="#inicio" class="flex items-center gap-2.5">
+      <img src="logo-blanco.png" alt="Tranxport" class="h-9 w-auto" />
+      <span class="leading-tight"><span class="block text-[11px] text-sky-200/80 font-medium tracking-wide uppercase">Rastreo · Mensajería en moto</span></span>
+    </a>
+    <nav class="hidden md:flex items-center gap-1 text-[13px] font-semibold text-sky-100/90">
+      <a href="#rastreador" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Rastrear</a>
+      <a href="#tarifas" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Tarifas</a>
+      <a href="#cotizar" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Cotizar</a>
+      <a href="#cobertura" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Cobertura</a>
+      <a href="#ayuda" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Ayuda</a>
+    </nav>
+    <a id="waHeaderBtn" href="https://wa.me/573222550163?text=Hola%20Tranxport%2C%20necesito%20ayuda%20con%20mi%20pedido" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1fb857] active:scale-95 transition text-white text-[13px] font-bold px-3.5 py-2.5 rounded-xl shadow-md"><i data-lucide="message-circle" class="w-4 h-4"></i><span>WhatsApp</span></a>
+  </div>
+</header>
+
+<section id="inicio" class="relative overflow-hidden bg-[#1a3a52] text-white">
+  <div class="absolute inset-0 map-grid"></div>
+  <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-sky-400/20 blur-3xl"></div>
+  <div class="absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-emerald-400/10 blur-3xl"></div>
+  <div class="relative max-w-5xl mx-auto px-4 pt-8 pb-6 sm:pt-12 sm:pb-10">
+    <div class="grid lg:grid-cols-[1.1fr_.9fr] gap-8 items-center">
+      <div class="text-center lg:text-left">
+        <div class="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full pl-1.5 pr-3.5 py-1.5 text-[12px] font-semibold backdrop-blur">
+          <span class="inline-flex items-center gap-1 bg-emerald-400 text-[#0f2536] text-[11px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wide"><span class="w-1.5 h-1.5 rounded-full bg-[#0f2536] animate-pulse"></span> En moto</span>
+          <span class="text-sky-100">Tu envío, en manos seguras y a tiempo</span>
+        </div>
+        <h1 class="mt-4 text-[32px] sm:text-5xl font-extrabold tracking-tight leading-[1.05]">¿Dónde va<br class="hidden sm:block" /> tu <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-emerald-300">pedido?</span></h1>
+        <p class="mt-3 text-sky-100/90 text-[15px] sm:text-lg max-w-md mx-auto lg:mx-0 leading-relaxed">Escribe tu código (ej: TRX-001) o el nombre del cliente. El estado lo actualiza tu mensajero — no es GPS en vivo.</p>
+        <div class="mt-4 flex flex-wrap justify-center lg:justify-start gap-2 text-[12px] font-semibold">
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>La Vega</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>Nocaima</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>Nimaima</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>Supatá</span>
+          <span class="inline-flex items-center gap-1 bg-white/10 border border-white/15 px-3 py-1.5 rounded-full"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>San Francisco</span>
+        </div>
+        <div class="mt-5 flex flex-col sm:flex-row gap-2.5 justify-center lg:justify-start">
+          <a href="#rastreador" class="inline-flex items-center justify-center gap-2 bg-white text-[#1a3a52] font-extrabold text-[15px] px-6 py-3.5 rounded-2xl shadow-lg"><i data-lucide="search" class="w-5 h-5"></i> Rastrear ahora</a>
+          <a id="waHeroBtn" href="https://wa.me/573222550163?text=Hola%20Tranxport%2C%20quiero%20cotizar%20un%20env%C3%ADo" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1fb857] font-extrabold text-[15px] px-6 py-3.5 rounded-2xl shadow-lg text-white"><i data-lucide="message-circle" class="w-5 h-5"></i> Cotizar envío</a>
+        </div>
+      </div>
+      <div class="hidden lg:block">
+        <div class="relative bg-white/[.07] border border-white/15 rounded-3xl p-6 backdrop-blur-sm animate-floaty">
+          <div class="flex items-center justify-between"><span class="font-mono2 text-[12px] text-sky-200 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">TRX-001 · EN RUTA</span><span class="flex items-center gap-1.5 text-[12px] font-bold text-emerald-300"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>Mensajero activo</span></div>
+          <div class="mt-6">
+            <div class="flex gap-3"><div class="flex flex-col items-center"><span class="w-4 h-4 rounded-full bg-amber-400 ring-4 ring-amber-400/20"></span><span class="w-0.5 flex-1 bg-white/15 my-1"></span></div><div class="pb-5"><p class="text-[13px] font-bold">La Vega — Origen</p><p class="text-[12px] text-sky-200/70">Paquete recogido · 9:40 a.m.</p></div></div>
+            <div class="flex gap-3"><div class="flex flex-col items-center"><span class="w-4 h-4 rounded-full bg-sky-400 ring-4 ring-sky-400/20 animate-pulse"></span><span class="w-0.5 flex-1 bg-white/15 my-1"></span></div><div class="pb-5"><p class="text-[13px] font-bold">En camino a Nocaima</p><p class="text-[12px] text-sky-200/70">Ten el celular a la mano</p></div></div>
+            <div class="flex gap-3"><div class="flex flex-col items-center"><span class="w-4 h-4 rounded-full bg-white/20 ring-4 ring-white/10"></span></div><div><p class="text-[13px] font-bold text-white/60">Entrega mismo día</p></div></div>
+          </div>
+          <div class="mt-4 route-dash opacity-40"></div>
+          <div class="mt-3 flex items-center gap-2 text-[12px] text-sky-200/80"><i data-lucide="timer" class="w-4 h-4"></i> Promedio de entrega: <strong class="text-white">mismo día</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <svg class="block w-full text-[#f4f4f4] -mb-px" viewBox="0 0 1440 48" fill="currentColor" preserveAspectRatio="none"><path d="M0,48 L0,28 C240,48 480,0 720,16 C960,32 1200,40 1440,12 L1440,48 Z"/></svg>
+</section>
+
+<main id="rastreador" class="max-w-xl mx-auto px-4 -mt-2 pb-4 scroll-mt-24">
+  <div class="bg-white rounded-3xl shadow-xl shadow-[#1a3a52]/10 border border-slate-200/80 p-5 sm:p-7 relative overflow-hidden">
+    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#f39c12] via-[#3498db] to-[#27ae60]"></div>
+    <div id="aviso-demo" hidden class="mb-4 bg-[#fff8ee] border border-[#f39c12] rounded-2xl p-3.5 text-[13px] text-[#5c4a1f]"><strong class="block text-[#1a3a52]">Modo demostración</strong> Aún no hay API conectada. Prueba con los ejemplos. Al pegar tu URL /exec verás datos reales.</div>
+    <label for="searchInput" class="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-wider text-[#1a3a52]"><i data-lucide="package-search" class="w-4 h-4"></i> Código de rastreo</label>
+    <form id="searchForm" class="mt-3" role="search" autocomplete="off">
+      <div class="search-glow flex items-center gap-2 bg-[#f4f4f4] border-2 border-slate-200 rounded-2xl pl-4 pr-2 py-2 transition-all">
+        <i data-lucide="scan-line" class="w-5 h-5 text-[#1a3a52]/50 shrink-0"></i>
+        <input id="searchInput" name="q" type="text" inputmode="search" enterkeyhint="search" maxlength="80" placeholder="Escribe tu código (ej: TRX-001) o nombre" class="flex-1 bg-transparent outline-none text-[16px] font-semibold placeholder:text-slate-400 placeholder:font-medium placeholder:text-[14px] text-[#1a3a52] min-w-0 py-2.5" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <button type="button" id="clearBtn" class="hidden shrink-0 w-8 h-8 grid place-items-center rounded-full hover:bg-slate-200 text-slate-400 transition" aria-label="Limpiar"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <button id="searchBtn" type="submit" class="mt-3 w-full inline-flex items-center justify-center gap-2.5 bg-[#1a3a52] hover:bg-[#0f2536] active:scale-[.98] transition text-white font-extrabold text-[16px] py-4 rounded-2xl shadow-lg shadow-[#1a3a52]/30"><span id="searchBtnContent" class="inline-flex items-center gap-2.5"><i data-lucide="search" class="w-5 h-5"></i> Rastrear pedido</span></button>
+    </form>
+    <div class="mt-4 flex flex-wrap items-center gap-2"><span class="text-[12px] font-semibold text-slate-400">Prueba con:</span>
+      <button data-demo="TRX-001" class="demo-chip text-[12px] font-bold font-mono2 bg-sky-50 text-[#1a3a52] border border-sky-200 px-3 py-1.5 rounded-full hover:bg-sky-100 active:scale-95 transition">TRX-001</button>
+      <button data-demo="TRX-002" class="demo-chip text-[12px] font-bold font-mono2 bg-sky-50 text-[#1a3a52] border border-sky-200 px-3 py-1.5 rounded-full hover:bg-sky-100 active:scale-95 transition">TRX-002</button>
+      <button data-demo="Farmacia La Vega" class="demo-chip text-[12px] font-bold bg-sky-50 text-[#1a3a52] border border-sky-200 px-3 py-1.5 rounded-full hover:bg-sky-100 active:scale-95 transition">Farmacia La Vega</button>
+    </div>
+    <div id="recentWrap" class="hidden mt-3 pt-3 border-t border-dashed border-slate-200"><p class="text-[12px] font-semibold text-slate-400 flex items-center gap-1.5"><i data-lucide="history" class="w-3.5 h-3.5"></i> Búsquedas recientes</p><div id="recentChips" class="mt-2 flex flex-wrap gap-2"></div></div>
+    <div class="mt-3 flex flex-wrap gap-2" aria-label="Significado de los colores">
+      <span class="inline-flex items-center gap-1.5 text-[12px] font-extrabold px-3 py-1.5 rounded-full" style="background:#f39c12;color:#1a3a52">● Pendiente</span>
+      <span class="inline-flex items-center gap-1.5 text-[12px] font-extrabold px-3 py-1.5 rounded-full bg-[#3498db] text-white">● En ruta</span>
+      <span class="inline-flex items-center gap-1.5 text-[12px] font-extrabold px-3 py-1.5 rounded-full bg-[#27ae60] text-white">● Entregado</span>
+    </div>
+    <p id="anuncio" class="sr-only" aria-live="polite"></p>
+    <div id="loadingState" class="hidden mt-5"><div class="rounded-2xl border border-slate-200 bg-slate-50 p-5"><div class="flex items-center gap-4"><div class="spinner-dark shrink-0"></div><div class="flex-1"><p class="font-extrabold text-[#1a3a52] text-[15px]">Buscando tu pedido…</p><p class="text-[13px] text-slate-500">Consultando el sistema de Tranxport</p></div></div><div class="mt-4 space-y-2.5"><div class="skeleton h-3.5 rounded-full w-3/4"></div><div class="skeleton h-3.5 rounded-full w-full"></div><div class="skeleton h-3.5 rounded-full w-5/6"></div></div></div></div>
+    <div id="resultCard" class="hidden mt-5 space-y-4"></div>
+    <div id="resultMeta" class="hidden mt-3 text-[12px] text-slate-500"></div>
+    <div id="notFoundState" class="hidden mt-5 animate-slideUp"><div class="rounded-2xl border-2 border-dashed border-red-200 bg-red-50/60 p-5 text-center"><span class="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-red-100 text-red-500 mb-3"><i data-lucide="package-x" class="w-7 h-7"></i></span><p class="font-extrabold text-[#1a3a52] text-[16px]">Pedido no encontrado</p><p class="mt-1.5 text-[14px] text-slate-600">Verifica el código o contáctanos por WhatsApp y te ayudamos.</p><a id="waNotFoundBtn" href="https://wa.me/573222550163?text=Hola%20Tranxport%2C%20no%20encuentro%20mi%20pedido" target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-2 bg-[#25D366] text-white font-bold text-[14px] px-5 py-3 rounded-xl shadow-md"><i data-lucide="message-circle" class="w-4 h-4"></i> Hablar por WhatsApp</a><details class="mt-3 text-left text-[12px] text-slate-500"><summary class="font-bold cursor-pointer">Detalles técnicos</summary><p id="notFoundDetail" class="mt-1"></p></details></div></div>
+    <div id="networkErrorState" class="hidden mt-5 animate-slideUp"><div class="rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/70 p-5 text-center"><span class="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 mb-3"><i data-lucide="wifi-off" class="w-7 h-7"></i></span><p class="font-extrabold text-[#1a3a52] text-[16px]">Sin conexión con el servidor</p><p class="mt-1.5 text-[14px] text-slate-600">Revisa tu internet e inténtalo de nuevo.</p><div class="mt-4 flex gap-2 justify-center"><button id="retryBtn" class="inline-flex items-center gap-2 bg-[#1a3a52] text-white font-bold text-[14px] px-5 py-3 rounded-xl"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reintentar</button></div><details class="mt-3 text-left text-[12px] text-slate-500"><summary class="font-bold cursor-pointer">Detalles técnicos</summary><p id="netDetail" class="mt-1"></p></details></div></div>
+  </div>
+  <div class="mt-4 grid grid-cols-3 gap-2.5 no-print">
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 text-center shadow-sm"><i data-lucide="map" class="w-5 h-5 mx-auto text-[#1a3a52]"></i><p class="mt-1.5 text-[18px] font-extrabold text-[#1a3a52] leading-none">5</p><p class="text-[11px] font-semibold text-slate-500 mt-0.5">Municipios</p></div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 text-center shadow-sm"><i data-lucide="zap" class="w-5 h-5 mx-auto text-[#f39c12]"></i><p class="mt-1.5 text-[18px] font-extrabold text-[#1a3a52] leading-none">Mismo</p><p class="text-[11px] font-semibold text-slate-500 mt-0.5">día de entrega</p></div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 text-center shadow-sm"><i data-lucide="bike" class="w-5 h-5 mx-auto text-[#27ae60]"></i><p class="mt-1.5 text-[18px] font-extrabold text-[#1a3a52] leading-none">100%</p><p class="text-[11px] font-semibold text-slate-500 mt-0.5">En moto</p></div>
+  </div>
+</main>
+
+<section id="tarifas" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
+  <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+      <div><p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Tarifario oficial</p><h2 class="mt-1 text-2xl font-extrabold text-[#1a3a52] tracking-tight">Precios claros, sin sorpresas</h2><p class="mt-1 text-[14px] text-slate-600">Mensajería, no mototaxi. Foto de entrega y comprobante digital incluidos.</p></div>
+      <a href="#cotizar" class="shrink-0 inline-flex items-center justify-center gap-2 bg-[#1a3a52] hover:bg-[#0f2536] text-white font-bold text-[14px] px-5 py-3 rounded-xl"><i data-lucide="calculator" class="w-4 h-4"></i> Cotizar mi envío</a>
+    </div>
+    <div class="mt-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4"><p class="font-extrabold text-[#1a3a52]">$6.000</p><p class="text-[13px] font-bold">Casco urbano ≤5kg</p><p class="text-[12px] text-slate-500">La Vega centro y barrios</p></div>
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4"><p class="font-extrabold text-[#1a3a52]">$8.000</p><p class="text-[13px] font-bold">Mediano / grande / frágil</p><p class="text-[12px] text-slate-500">Caja rígida + cuidado extra</p></div>
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4"><p class="font-extrabold text-[#1a3a52]">$10–12 mil</p><p class="text-[13px] font-bold">La Vega ↔ Nocaima / Nimaima</p><p class="text-[12px] text-slate-500">Intermunicipal cercano</p></div>
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4"><p class="font-extrabold text-[#1a3a52]">$12–15 mil</p><p class="text-[13px] font-bold">Supatá / San Francisco</p><p class="text-[12px] text-slate-500">↔ La Vega / Nocaima</p></div>
+    </div>
+    <p class="mt-3 text-[13px] text-slate-600 bg-[#f4f4f4] border border-slate-200 rounded-2xl px-4 py-3">📍 <strong>Casco urbano de Nocaima:</strong> $7.000 (pequeño) · $8.000 (grande/frágil). Resto de cascos urbanos: $6.000 / $8.000.</p>
+    <div class="mt-3 grid sm:grid-cols-2 gap-2.5 text-[13px]">
+      <div class="rounded-2xl bg-sky-50 border border-sky-200 p-4 flex gap-3"><i data-lucide="info" class="w-5 h-5 text-sky-600 shrink-0"></i><p class="text-sky-900"><strong>Veredas:</strong> tarifa base + $2.000 por cada 2 km adicionales. <strong>Compra por encargo:</strong> +10% (mín $3.000). <strong>Espera &gt;10 min:</strong> +$2.000.</p></div>
+      <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex gap-3"><i data-lucide="clock" class="w-5 h-5 text-amber-600 shrink-0"></i><p class="text-amber-900"><strong>Horarios:</strong> Lun–Sáb 7AM–7PM · Dom 8AM–2PM (recargo +20% domingos y festivos).</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="cotizar" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
+  <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-8">
+    <p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Cotiza y pide</p>
+    <h2 class="mt-1 text-2xl font-extrabold text-[#1a3a52] tracking-tight">Cotiza tu envío al instante</h2>
+    <p class="mt-1 text-[14px] text-slate-600">Calcula el precio, completa tus datos y el pedido cae directo a nuestro sistema. Te confirmamos por WhatsApp.</p>
+
+    <div class="mt-5 grid lg:grid-cols-2 gap-4 items-start">
+      <!-- Calculadora -->
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 sm:p-5">
+        <p class="flex items-center gap-2 font-extrabold text-[#1a3a52] text-[15px]"><i data-lucide="calculator" class="w-5 h-5"></i> 1. Calcula</p>
+        <div class="mt-3 grid grid-cols-2 gap-2.5">
+          <label class="block text-[12px] font-bold text-slate-500">Origen
+            <select id="c_muniO" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]">
+              <option>La Vega</option><option>Nocaima</option><option>Nimaima</option><option>Supatá</option><option>San Francisco</option>
+            </select></label>
+          <label class="block text-[12px] font-bold text-slate-500">Destino
+            <select id="c_muniD" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]">
+              <option>Nocaima</option><option>La Vega</option><option>Nimaima</option><option>Supatá</option><option>San Francisco</option>
+            </select></label>
+        </div>
+        <label class="mt-2.5 block text-[12px] font-bold text-slate-500">Tamaño del paquete
+          <select id="c_tam" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]">
+            <option value="s">Pequeño (hasta 5 kg)</option>
+            <option value="g">Mediano / grande / frágil</option>
+          </select></label>
+        <label class="mt-2.5 block text-[12px] font-bold text-slate-500">Km extra en vereda (la distancia entre pueblos se calcula sola)
+          <input id="c_km" type="number" min="0" max="60" value="0" inputmode="numeric" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+        <label class="mt-2.5 flex items-center gap-2.5 text-[13.5px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer"><input id="c_enc" type="checkbox" class="w-4 h-4 accent-[#1a3a52]" /> Compra por encargo (+10%, mín $3.000)</label>
+        <label id="c_valorWrap" class="mt-2.5 hidden text-[12px] font-bold text-slate-500">Valor de la compra ($)
+          <input id="c_valor" type="number" min="0" value="30000" inputmode="numeric" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+        <div class="mt-2.5 grid grid-cols-2 gap-2.5">
+          <label class="flex items-center gap-2 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer"><input id="c_espera" type="checkbox" class="w-4 h-4 accent-[#1a3a52]" /> Espera +10 min (+$2.000)</label>
+          <label class="flex items-center gap-2 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer"><input id="c_dom" type="checkbox" class="w-4 h-4 accent-[#1a3a52]" /> Dom/festivo (+20%)</label>
+        </div>
+        <div class="mt-3 bg-[#1a3a52] text-white rounded-2xl p-4">
+          <div id="cot-detalle" class="text-[12.5px] text-sky-100/85 space-y-1"></div>
+          <div class="mt-2 pt-2 border-t border-white/15 flex items-baseline justify-between">
+            <span class="text-[13px] font-bold uppercase tracking-wider text-sky-200/80">Estimado</span>
+            <span id="cot-total" class="text-[26px] font-extrabold tracking-tight">$0</span>
+          </div>
+        </div>
+        <p class="mt-2 text-[11.5px] text-slate-400">Precio estimado con el tarifario oficial. El mensajero lo confirma por WhatsApp.</p>
+      </div>
+
+      <!-- Formulario de pedido -->
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 sm:p-5">
+        <p class="flex items-center gap-2 font-extrabold text-[#1a3a52] text-[15px]"><i data-lucide="package-plus" class="w-5 h-5"></i> 2. Haz tu pedido</p>
+        <form id="pedido-form" class="mt-3 space-y-2.5" novalidate>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="block text-[12px] font-bold text-slate-500">Tu nombre *<input id="p_nombre" type="text" maxlength="60" placeholder="Ej: María" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+            <label class="block text-[12px] font-bold text-slate-500">Negocio (opcional)<input id="p_negocio" type="text" maxlength="60" placeholder="Ej: Farmacia" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          </div>
+          <label class="block text-[12px] font-bold text-slate-500">Tu WhatsApp *<input id="p_wa" type="tel" inputmode="tel" maxlength="13" placeholder="Ej: 3222550163" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          <label class="block text-[12px] font-bold text-slate-500">Dirección de recogida *<input id="p_dirO" type="text" maxlength="120" placeholder="Ej: Calle 10 # 5-20, La Vega" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          <label class="block text-[12px] font-bold text-slate-500">Dirección de entrega *<input id="p_dirD" type="text" maxlength="120" placeholder="Ej: Carrera 4 # 8-52, Nocaima" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="block text-[12px] font-bold text-slate-500">¿Quién recibe? *<input id="p_dest" type="text" maxlength="60" placeholder="Nombre" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+            <label class="block text-[12px] font-bold text-slate-500">WhatsApp de quien recibe<input id="p_telD" type="tel" inputmode="tel" maxlength="13" placeholder="Para avisar la entrega" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="block text-[12px] font-bold text-slate-500">¿Cuándo? *
+              <select id="p_cuando" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]"><option>Hoy mismo</option><option>Fecha programada</option></select></label>
+          </div>
+          <label id="p_fechaWrap" class="hidden text-[12px] font-bold text-slate-500">Fecha programada *<input id="p_fecha" type="date" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          <label class="block text-[12px] font-bold text-slate-500">¿Qué enviamos? *<input id="p_desc" type="text" maxlength="140" placeholder="Ej: Medicamentos en bolsa pequeña" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="block text-[12px] font-bold text-slate-500">Método de pago *
+              <select id="p_pago" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]"><option>Efectivo</option><option>Nequi</option><option>Daviplata</option><option>Transferencia</option></select></label>
+            <label class="block text-[12px] font-bold text-slate-500">Email (opcional)<input id="p_email" type="email" maxlength="80" placeholder="tucorreo@..." class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          </div>
+          <label class="block text-[12px] font-bold text-slate-500">Observaciones (opcional)<input id="p_obs" type="text" maxlength="140" placeholder="Ej: Llamar al llegar" class="mt-1 w-full bg-white border-2 border-slate-200 rounded-xl px-3 py-2.5 text-[14px] font-semibold text-[#1a3a52] outline-none focus:border-[#1a3a52]" /></label>
+          <p id="pedido-error" hidden class="text-[13px] font-bold text-red-600"></p>
+          <button id="btn-pedir" type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1fb857] active:scale-[.98] transition text-white font-extrabold text-[16px] py-4 rounded-2xl shadow-lg"><span id="btn-pedir-txt" class="inline-flex items-center gap-2"><i data-lucide="send" class="w-5 h-5"></i> Confirmar pedido</span></button>
+          <a id="pedido-wa" href="#" target="_blank" rel="noopener" class="block text-center text-[13px] font-bold text-[#1a3a52] underline underline-offset-4">o pedir por WhatsApp con esta cotización</a>
+        </form>
+        <div id="pedido-ok" hidden class="mt-3 text-center rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/70 p-5">
+          <span class="mx-auto grid place-items-center w-14 h-14 rounded-2xl bg-emerald-500 text-white mb-3"><i data-lucide="check" class="w-7 h-7"></i></span>
+          <p class="font-extrabold text-[#1a3a52] text-[17px]">¡Pedido recibido!</p>
+          <p id="pedido-ok-txt" class="mt-1.5 text-[14px] text-slate-600"></p>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <a id="pedido-rastrear" href="#rastreador" class="inline-flex items-center justify-center gap-1.5 bg-[#1a3a52] text-white font-bold text-[13px] px-3 py-3 rounded-xl"><i data-lucide="search" class="w-4 h-4"></i> Rastrear</a>
+            <a id="pedido-ok-wa" href="#" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 bg-[#25D366] text-white font-bold text-[13px] px-3 py-3 rounded-xl"><i data-lucide="message-circle" class="w-4 h-4"></i> WhatsApp</a>
+          </div>
+          <button id="pedido-otro" class="mt-2 text-[13px] font-bold text-[#1a3a52] underline underline-offset-4">Hacer otro pedido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<iframe name="envio-pedido" id="envio-pedido" hidden title="Envío de pedido"></iframe>
+
+<section id="cobertura" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
+  <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-8">
+    <p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Zona de cobertura</p>
+    <h2 class="mt-1 text-2xl font-extrabold text-[#1a3a52] tracking-tight">Operamos en 5 municipios</h2>
+    <p class="mt-1 text-[14px] text-slate-600">Mapa esquemático, no a escala. Reacciona a tu búsqueda: ámbar = pendiente, moto azul en movimiento = en ruta, línea verde = entregado.</p>
+    <div class="mt-4 grid lg:grid-cols-2 gap-4 items-start">
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-3 relative">
+        <div id="mapa-chip" hidden class="mapa-chip pend"></div>
+        <svg id="mapa-svg" viewBox="0 0 360 214" role="img" aria-label="Mapa esquemático de San Francisco, Supatá, La Vega, Nimaima y Nocaima" class="w-full h-auto block">
+          <ellipse cx="70" cy="168" rx="62" ry="26" fill="#e7eef3"/><ellipse cx="188" cy="52" rx="54" ry="22" fill="#e7eef3"/><ellipse cx="292" cy="162" rx="58" ry="24" fill="#edf3f7"/>
+          <path d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#d5dee6" stroke-width="10" stroke-linecap="round"/>
+          <path id="ruta-progreso" d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#1a3a52" stroke-width="2" stroke-dasharray="5 7" stroke-linecap="round"/>
+          <text x="16" y="24" fill="#8aa0b0" font-size="11">Gualivá · no a escala</text>
+          <g class="pin" data-muni="san-francisco"><circle class="halo" cx="58" cy="138" r="14"/><circle class="nucleo" cx="58" cy="138" r="6.5"/><text x="58" y="168" text-anchor="middle">San Francisco</text></g>
+          <g class="pin" data-muni="supata"><circle class="halo" cx="124" cy="70" r="14"/><circle class="nucleo" cx="124" cy="70" r="6.5"/><text x="124" y="52" text-anchor="middle">Supatá</text></g>
+          <g class="pin" data-muni="la-vega"><circle class="halo" cx="180" cy="138" r="14"/><circle class="nucleo" cx="180" cy="138" r="6.5"/><text x="180" y="168" text-anchor="middle">La Vega</text></g>
+          <g class="pin" data-muni="nimaima"><circle class="halo" cx="236" cy="70" r="14"/><circle class="nucleo" cx="236" cy="70" r="6.5"/><text x="236" y="52" text-anchor="middle">Nimaima</text></g>
+          <g class="pin" data-muni="nocaima"><circle class="halo" cx="302" cy="138" r="14"/><circle class="nucleo" cx="302" cy="138" r="6.5"/><text x="302" y="168" text-anchor="middle">Nocaima</text></g>
+          <g id="moto-mapa" visibility="hidden"><text font-size="17" text-anchor="middle">🏍️<animateMotion dur="6s" repeatCount="indefinite" path="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138"/></text></g>
+        </svg>
+        <ul class="lista-munis mt-3 flex flex-wrap gap-2 list-none p-0">
+          <li data-muni="la-vega" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">La Vega</li>
+          <li data-muni="nocaima" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Nocaima</li>
+          <li data-muni="nimaima" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Nimaima</li>
+          <li data-muni="supata" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Supatá</li>
+          <li data-muni="san-francisco" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">San Francisco</li>
+        </ul>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-2 gap-2.5">
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="store" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">La Vega</p><p class="text-[11px] font-semibold text-slate-500">Base principal</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="church" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nocaima</p><p class="text-[11px] font-semibold text-slate-500">Panela y café</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="mountain" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nimaima</p><p class="text-[11px] font-semibold text-slate-500">Ruta Tobia</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="tent-tree" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Supatá</p><p class="text-[11px] font-semibold text-slate-500">Zona rural</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center col-span-2"><i data-lucide="landmark" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">San Francisco</p><p class="text-[11px] font-semibold text-slate-500">Cobertura total en moto</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="max-w-5xl mx-auto px-4 mt-8">
+  <div class="text-center"><p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Simple y rápido</p><h2 class="mt-1 text-2xl sm:text-3xl font-extrabold text-[#1a3a52] tracking-tight">Rastrea en 3 pasos</h2></div>
+  <div class="mt-5 grid sm:grid-cols-3 gap-3">
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm"><span class="grid place-items-center w-11 h-11 rounded-2xl bg-[#1a3a52] text-white font-extrabold">1</span><h3 class="mt-3 font-extrabold text-[#1a3a52] flex items-center gap-2"><i data-lucide="ticket" class="w-4 h-4 text-slate-400"></i> Recibe tu código</h3><p class="mt-1 text-[13.5px] text-slate-600">Te llega por WhatsApp al confirmar. Formato: <span class="font-mono2 font-bold text-[#1a3a52]">TRX-001</span>.</p></div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm"><span class="grid place-items-center w-11 h-11 rounded-2xl bg-[#3498db] text-white font-extrabold">2</span><h3 class="mt-3 font-extrabold text-[#1a3a52] flex items-center gap-2"><i data-lucide="keyboard" class="w-4 h-4 text-slate-400"></i> Escríbelo arriba</h3><p class="mt-1 text-[13.5px] text-slate-600">También por <strong>nombre del cliente, negocio o destino</strong> (ignora tildes).</p></div>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm"><span class="grid place-items-center w-11 h-11 rounded-2xl bg-[#27ae60] text-white font-extrabold">3</span><h3 class="mt-3 font-extrabold text-[#1a3a52] flex items-center gap-2"><i data-lucide="radar" class="w-4 h-4 text-slate-400"></i> Conoce el estado</h3><p class="mt-1 text-[13.5px] text-slate-600">Amarillo pendiente, azul en ruta, verde entregado.</p></div>
+  </div>
+  <div class="mt-3 bg-[#1a3a52] rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden"><p class="text-[12px] font-extrabold uppercase tracking-[.18em] text-sky-200/80">Significado de cada estado</p>
+    <div class="mt-3 grid sm:grid-cols-3 gap-2.5">
+      <div class="flex items-center gap-3 border border-white/10 rounded-xl px-4 py-3 bg-white/5"><span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:#f39c12;box-shadow:0 0 12px #f39c12"></span><div><p class="font-bold text-[14px]">Pendiente</p><p class="text-[12px] text-sky-200/70">Recibido, por recoger</p></div></div>
+      <div class="flex items-center gap-3 border border-white/10 rounded-xl px-4 py-3 bg-white/5"><span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:#3498db;box-shadow:0 0 12px #3498db"></span><div><p class="font-bold text-[14px]">En ruta</p><p class="text-[12px] text-sky-200/70">El moto va en camino</p></div></div>
+      <div class="flex items-center gap-3 border border-white/10 rounded-xl px-4 py-3 bg-white/5"><span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:#27ae60;box-shadow:0 0 12px #27ae60"></span><div><p class="font-bold text-[14px]">Entregado</p><p class="text-[12px] text-sky-200/70">Recibido en destino</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="ayuda" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
+  <div class="text-center"><p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Preguntas frecuentes</p><h2 class="mt-1 text-2xl sm:text-3xl font-extrabold text-[#1a3a52] tracking-tight">¿Necesitas ayuda?</h2></div>
+  <div class="mt-5 grid gap-2.5 max-w-2xl mx-auto">
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden"><summary class="flex items-center justify-between gap-3 p-4 font-bold text-[#1a3a52] text-[14.5px]"><span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 shrink-0"><i data-lucide="key-round" class="w-4 h-4"></i></span> ¿Dónde encuentro mi código?</span><i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i></summary><div class="px-4 pb-5 pl-[68px] text-[13.5px] text-slate-600">Por WhatsApp al confirmar. Formato <span class="font-mono2 font-bold">TRX-001</span>.</div></details>
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden"><summary class="flex items-center justify-between gap-3 p-4 font-bold text-[#1a3a52] text-[14.5px]"><span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 shrink-0"><i data-lucide="user-search" class="w-4 h-4"></i></span> ¿Puedo buscar sin código?</span><i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i></summary><div class="px-4 pb-5 pl-[68px] text-[13.5px] text-slate-600">Sí, por nombre de cliente, negocio o destino. No importan tildes ni mayúsculas.</div></details>
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden"><summary class="flex items-center justify-between gap-3 p-4 font-bold text-[#1a3a52] text-[14.5px]"><span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 shrink-0"><i data-lucide="timer" class="w-4 h-4"></i></span> ¿Cuánto tarda?</span><i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i></summary><div class="px-4 pb-5 pl-[68px] text-[13.5px] text-slate-600">Mayoría mismo día. Lun–Sáb 7AM–7PM, Dom 8AM–2PM.</div></details>
+    <details class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden"><summary class="flex items-center justify-between gap-3 p-4 font-bold text-[#1a3a52] text-[14.5px]"><span class="flex items-center gap-3"><span class="grid place-items-center w-8 h-8 rounded-xl bg-sky-50 shrink-0"><i data-lucide="circle-alert" class="w-4 h-4"></i></span> ¿No encontrado?</span><i data-lucide="chevron-down" class="chev w-5 h-5 text-slate-400 shrink-0"></i></summary><div class="px-4 pb-5 pl-[68px] text-[13.5px] text-slate-600">Revisa guion y espacios. Escríbenos por WhatsApp con nombre y fecha.</div></details>
+  </div>
+</section>
+
+<section class="max-w-5xl mx-auto px-4 mt-8 mb-6 no-print">
+  <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a3a52] via-[#1e4765] to-[#0f2536] p-6 sm:p-10 text-white text-center">
+    <div class="absolute inset-0 map-grid opacity-60"></div>
+    <div class="relative"><img src="logo-blanco.png" alt="Tranxport" class="h-12 w-auto mx-auto mb-4" />
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">¿Tienes un paquete por enviar?</h2>
+      <p class="mt-2 text-sky-100/85 text-[14.5px] max-w-md mx-auto">Cotiza por WhatsApp en menos de un minuto. Lun–Sáb 7AM–7PM.</p>
+      <div class="mt-5 flex flex-col sm:flex-row gap-2.5 justify-center">
+        <a href="https://wa.me/573222550163?text=Hola%20Tranxport%2C%20quiero%20enviar%20un%20paquete" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 bg-[#25D366] text-white font-extrabold text-[15px] px-7 py-4 rounded-2xl shadow-lg"><i data-lucide="message-circle" class="w-5 h-5"></i> Cotizar por WhatsApp</a>
+        <a href="#rastreador" class="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-[15px] px-7 py-4 rounded-2xl"><i data-lucide="search" class="w-5 h-5"></i> Rastrear otro pedido</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="border-t border-slate-200 bg-white no-print">
+  <div class="max-w-5xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5"><img src="logo-color.png" alt="Tranxport" class="h-8 w-auto" /><div class="leading-tight"><p class="font-extrabold text-[#1a3a52] text-[14px]">Mensajería en moto</p><p class="text-[12px] text-slate-500">La Vega · Nocaima · Nimaima · Supatá · San Francisco · tranxportx@gmail.com</p></div></div>
+    <div class="flex items-center gap-4 text-[12.5px] font-semibold text-slate-500"><span class="inline-flex items-center gap-1"><i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-500"></i> Hecho en Cundinamarca</span></div>
+  </div>
+  <p class="text-center text-[11.5px] text-slate-400 pb-5">© 2026 Tranxport. Tu envío, en manos seguras y a tiempo.</p>
+</footer>
+
+<a href="https://wa.me/573222550163?text=Hola%20Tranxport%2C%20necesito%20ayuda" target="_blank" rel="noopener" aria-label="WhatsApp" class="wa-pulse no-print fixed bottom-5 right-5 z-40 grid place-items-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-xl"><i data-lucide="message-circle" class="w-7 h-7"></i></a>
+<div id="toast" class="no-print fixed left-1/2 bottom-6 z-50 -translate-x-1/2 translate-y-24 opacity-0 pointer-events-none"><div class="flex items-center gap-2 bg-[#1a3a52] text-white text-[13.5px] font-bold px-4 py-3 rounded-2xl shadow-2xl whitespace-nowrap"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-300"></i><span id="toastMsg">Copiado</span></div></div>
+<noscript><p style="padding:16px;font-family:sans-serif">Para rastrear tu pedido necesitas activar JavaScript.</p></noscript>
+
+<script>
+/* CONFIG — edita solo estas líneas */
+const API_URL = "https://script.google.com/macros/s/AKfycbzTPyJJYUM2XLayoyB-Y8hEf-GR78Q6xoUYmKYd1xFU2grcjYXfTTr8_CMWXpB2iqUr7g/exec";
+const WHATSAPP_NUMBER = "573222550163";
+const PEDIDOS_DEMO = [
+  { codigo:"TRX-001", cliente:"Farmacia La Vega", destino:"Nocaima", fecha:"04/10/2026", estado:"En ruta" },
+  { codigo:"TRX-002", cliente:"Tienda El Roble", destino:"Supatá", fecha:"04/10/2026", estado:"Pendiente" },
+  { codigo:"TRX-003", cliente:"Distribuidora Gualivá", destino:"San Francisco", fecha:"03/10/2026", estado:"Entregado" },
+  { codigo:"TRX-004", cliente:"Papelería Central", destino:"Nimaima", fecha:"04/10/2026", estado:"Pendiente" },
+  { codigo:"TRX-005", cliente:"Ferretería La Ruta", destino:"La Vega", fecha:"02/10/2026", estado:"Entregado" }
+];
+const STATUS_STYLE = { "pendiente":{bg:"#f39c12",label:"Pendiente",icon:"clock"}, "en ruta":{bg:"#3498db",label:"En ruta",icon:"bike"}, "entregado":{bg:"#27ae60",label:"Entregado",icon:"package-check"} };
+const form=document.getElementById("searchForm"), input=document.getElementById("searchInput"), clearBtn=document.getElementById("clearBtn"),
+searchBtn=document.getElementById("searchBtn"), searchBtnContent=document.getElementById("searchBtnContent"),
+loadingState=document.getElementById("loadingState"), resultCard=document.getElementById("resultCard"), resultMeta=document.getElementById("resultMeta"),
+notFoundState=document.getElementById("notFoundState"), networkErrorState=document.getElementById("networkErrorState"),
+recentWrap=document.getElementById("recentWrap"), recentChips=document.getElementById("recentChips"),
+anuncio=document.getElementById("anuncio"), avisoDemo=document.getElementById("aviso-demo");
+let ctrl=null, seq=0;
+function apiLista(){const u=String(API_URL||"").trim();return u.startsWith("https://")&&!u.includes("TU_URL");}
+function normalizarTexto(v){return String(v||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
+function claveMunicipio(t){const n=normalizarTexto(t);if(n.includes("san francisco"))return"san-francisco";if(n.includes("supata"))return"supata";if(n.includes("nimaima"))return"nimaima";if(n.includes("nocaima"))return"nocaima";if(n.includes("vega"))return"la-vega";return"";}
+function getStatus(e){const k=normalizarTexto(e);if(k.includes("entreg"))return STATUS_STYLE["entregado"];if(k.includes("ruta")||k.includes("transito")||k.includes("camino"))return STATUS_STYLE["en ruta"];if(k.includes("pend"))return STATUS_STYLE["pendiente"];return{bg:"#1a3a52",label:String(e||"—"),icon:"package"};}
+function formatearFecha(v){if(v==null||v==="")return"Sin fecha";if(typeof v==="number"&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+v*86400000);return String(d.getUTCDate()).padStart(2,"0")+"/"+String(d.getUTCMonth()+1).padStart(2,"0")+"/"+d.getUTCFullYear();}const s=String(v).trim();const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[3]+"/"+m[2]+"/"+m[1];const d2=new Date(s);if(!isNaN(d2.getTime())&&/[A-Za-z]{3,}/.test(s)){return String(d2.getDate()).padStart(2,"0")+"/"+String(d2.getMonth()+1).padStart(2,"0")+"/"+d2.getFullYear();}return s;}
+function pick(o,names){const ks=Object.keys(o);for(const b of names){const f=ks.find(k=>k===b||k.startsWith(b)||k.includes(b));if(f!=null&&o[f]!=null&&String(o[f]).trim()!=="")return o[f];}return"";}
+function normalizarPedido(c){if(!c||typeof c!=="object"||Array.isArray(c))return null;const p={};Object.keys(c).forEach(k=>p[normalizarTexto(k)]=c[k]);return{codigo:String(pick(p,["codigo","guia","code","id"])||"").trim(),cliente:String(pick(p,["cliente","nombre","negocio","customer"])||"").trim(),destino:String(pick(p,["destino","municipio","ciudad","hacia"])||"").trim(),fecha:formatearFecha(pick(p,["fecha","date","dia"])),estado:pick(p,["estado","status","estatus"])};}
+function pedidoValido(p){return!!(p&&(p.codigo||p.cliente));}
+function extraerPedidos(d){if(d==null||d===""||d==="null")return[];if(Array.isArray(d))return d.map(normalizarPedido).filter(pedidoValido);if(typeof d!=="object")return[];const a=d.pedidos||d.resultados||d.results||d.data||d.pedido||d.resultado;if(Array.isArray(a))return a.map(normalizarPedido).filter(pedidoValido);if(a&&typeof a==="object"){const u=normalizarPedido(a);return pedidoValido(u)?[u]:[];}const s=normalizarPedido(d);return pedidoValido(s)?[s]:[];}
+function buscarEnDemo(q){const n=normalizarTexto(q);const exact=PEDIDOS_DEMO.filter(p=>normalizarTexto(p.codigo)===n);if(exact.length)return exact.map(p=>({...p}));return PEDIDOS_DEMO.filter(p=>[p.codigo,p.cliente,p.destino].some(f=>normalizarTexto(f).includes(n))).map(p=>({...p}));}
+function construirUrl(q){const b=String(API_URL).trim();return b+(b.indexOf("?")===-1?"?":"&")+"q="+encodeURIComponent(q);}
+function escapeHtml(s){return(s??"—").toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function marcarMunicipios(ds, estadoBruto){
+  const lista=(Array.isArray(ds)?ds:[ds]).filter(Boolean);
+  const a=[...new Set(lista.map(claveMunicipio).filter(Boolean))];
+  const svg=document.getElementById("mapa-svg");
+  svg.classList.remove("mapa-ruta","mapa-ok");
+  const k=normalizarTexto(estadoBruto||"");
+  const st=k.includes("entreg")?"ok":(k.includes("ruta")||k.includes("camino")?"ruta":(String(estadoBruto||"").trim()?"pend":(a.length?"dest":"")));
+  if(st==="ruta")svg.classList.add("mapa-ruta");
+  if(st==="ok"){svg.classList.add("mapa-ok");const rp=document.getElementById("ruta-progreso");rp.style.animation="none";void rp.getBoundingClientRect();rp.style.animation="";}
+  document.querySelectorAll("[data-muni]").forEach(n=>{
+    const on=a.includes(n.getAttribute("data-muni"));
+    n.classList.toggle("activo",on);
+    n.classList.toggle("dest-ruta",on&&st==="ruta");
+    n.classList.toggle("dest-ok",on&&st==="ok");
+  });
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.getElementById("moto-mapa").setAttribute("visibility",(st==="ruta"&&!reduce)?"visible":"hidden");
+  const chip=document.getElementById("mapa-chip");
+  const destTxt=lista[0]||"";
+  if(st==="ok"&&a.length){chip.hidden=false;chip.className="mapa-chip ok";chip.textContent="✓ Entregado en "+destTxt;}
+  else if(st==="ruta"&&a.length){chip.hidden=false;chip.className="mapa-chip ruta";chip.textContent="🏍️ En ruta hacia "+destTxt;}
+  else if(st==="pend"&&a.length){chip.hidden=false;chip.className="mapa-chip pend";chip.textContent="⏳ Pendiente — destino: "+destTxt;}
+  else if(st==="dest"&&a.length){chip.hidden=false;chip.className="mapa-chip pend";chip.textContent="📍 Destino: "+destTxt;}
+  else{chip.hidden=true;}
+}
+function hideAll(){loadingState.classList.add("hidden");resultCard.classList.add("hidden");resultMeta.classList.add("hidden");notFoundState.classList.add("hidden");networkErrorState.classList.add("hidden");resultCard.innerHTML="";}
+function setLoading(l){searchBtn.disabled=l;searchBtnContent.innerHTML=l?'<span class="spinner"></span> Buscando...':'<i data-lucide="search" class="w-5 h-5"></i> Rastrear pedido';if(window.lucide)lucide.createIcons();}
+function showToast(m){document.getElementById("toastMsg").textContent=m;const t=document.getElementById("toast");t.classList.remove("translate-y-24","opacity-0");clearTimeout(showToast._t);showToast._t=setTimeout(()=>t.classList.add("translate-y-24","opacity-0"),2200);}
+function getRecent(){try{return JSON.parse(localStorage.getItem("trx_recent")||"[]");}catch{return[];}}
+function saveRecent(q){try{let a=getRecent().filter(x=>x.toLowerCase()!==q.toLowerCase());a.unshift(q);localStorage.setItem("trx_recent",JSON.stringify(a.slice(0,5)));renderRecent();}catch{}}
+function renderRecent(){const a=getRecent();if(!a.length){recentWrap.classList.add("hidden");return;}recentWrap.classList.remove("hidden");recentChips.innerHTML=a.map(q=>`<button data-r="${escapeHtml(q)}" class="inline-flex items-center gap-1.5 text-[12px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full">${escapeHtml(q)}</button>`).join("");recentChips.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{input.value=b.dataset.r;doSearch();}));}
+function stepIndexFor(e){const k=normalizarTexto(e);if(k.includes("entreg"))return 3;if(k.includes("ruta")||k.includes("camino"))return 2;return 1;}
+function stepMsg(i){if(i===3)return"tu paquete ya llegó a su destino.";if(i===2)return"nuestro motorizado va en camino.";return"recibimos tu pedido, pronto lo recogemos.";}
+function renderResults(pedidos,q,esDemo){
+  resultCard.innerHTML="";marcarMunicipios(pedidos.map(p=>p.destino),pedidos[0]&&pedidos[0].estado);
+  if(!pedidos.length){notFoundState.classList.remove("hidden");document.getElementById("notFoundDetail").textContent="Búsqueda: «"+q+"» · "+(apiLista()?"API real":"modo demo");anuncio.textContent="Pedido no encontrado";document.title="No encontrado · Tranxport";notFoundState.scrollIntoView({behavior:"smooth",block:"nearest"});return;}
+  resultMeta.classList.remove("hidden");
+  resultMeta.textContent=(pedidos.length===1?"1 pedido para «"+q+"»":"Se encontraron "+pedidos.length+" pedidos para «"+q+"»")+(esDemo?" · dato de ejemplo":"");
+  pedidos.forEach(d=>{
+    const st=getStatus(d.estado), si=stepIndexFor(d.estado), pct=si===3?100:si===2?55:12;
+    const waT=encodeURIComponent(`Hola Tranxport, consulto la guía ${d.codigo||""} ${d.cliente?"de "+d.cliente:""} ${d.destino?"con destino a "+d.destino:""}. Estado: ${st.label}.`);
+    const el=document.createElement("div");
+    el.className="animate-slideUp rounded-2xl border border-slate-200 overflow-hidden shadow-lg shadow-[#1a3a52]/10";
+    el.innerHTML=`
+    <div class="p-4 sm:p-5 text-white relative overflow-hidden" style="background:linear-gradient(135deg, ${st.bg}, ${st.bg}dd)">
+      <div class="relative flex items-start justify-between gap-3"><div><p class="text-[11px] font-extrabold uppercase tracking-[.18em] text-white/80">Código de rastreo ${esDemo?'<span class="bg-white/20 px-2 py-0.5 rounded-full">demo</span>':''}</p><p class="font-mono2 text-[22px] font-bold">${escapeHtml(d.codigo||"Sin código")}</p></div>
+      <span class="shrink-0 inline-flex items-center gap-1.5 bg-white text-[12.5px] font-extrabold px-3.5 py-2 rounded-full shadow" style="color:${st.bg}"><i data-lucide="${st.icon}" class="w-4 h-4"></i> ${escapeHtml(st.label)}</span></div>
+    </div>
+    <div class="bg-white p-4 sm:p-5">
+      <div class="grid gap-2.5"><div class="bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-3"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cliente</p><p class="font-bold text-[#1a3a52] text-[14.5px]">${escapeHtml(d.cliente||"Sin nombre")}</p></div>
+      <div class="grid grid-cols-2 gap-2.5"><div class="bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-3"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Destino</p><p class="font-bold text-[#1a3a52] text-[14.5px]">${escapeHtml(d.destino||"Sin destino")}</p></div>
+      <div class="bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-3"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Fecha</p><p class="font-bold text-[#1a3a52] text-[14.5px]">${escapeHtml(d.fecha||"Sin fecha")}</p></div></div></div>
+      <div class="mt-4 pt-4 border-t border-dashed border-slate-200"><div class="flex justify-between text-[11px] font-extrabold uppercase tracking-wider mb-2"><span class="${si>=1?"text-[#1a3a52]":"text-slate-300"}">Pendiente</span><span class="${si>=2?"text-[#1a3a52]":"text-slate-300"}">En ruta</span><span class="${si>=3?"text-[#1a3a52]":"text-slate-300"}">Entregado</span></div>
+      <div class="relative h-2.5 rounded-full bg-slate-100 overflow-hidden"><div class="progress-fill absolute inset-y-0 left-0 rounded-full" style="width:${pct}%;background:linear-gradient(90deg,#f39c12,#3498db,#27ae60)"></div></div>
+      <p class="mt-2 text-[13px] text-slate-600"><strong class="text-[#1a3a52]">${escapeHtml(st.label)}</strong> — ${stepMsg(si)}</p>
+      <p class="text-[11px] text-slate-400">El mensajero actualiza este estado en la hoja de ruta. No es GPS en vivo.</p></div>
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waT}" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 bg-[#25D366] text-white font-bold text-[13px] px-3 py-3 rounded-xl"><i data-lucide="message-circle" class="w-4 h-4"></i> Preguntar</a>
+        <button class="btn-share inline-flex items-center justify-center gap-1.5 bg-[#1a3a52] text-white font-bold text-[13px] px-3 py-3 rounded-xl"><i data-lucide="share-2" class="w-4 h-4"></i> Compartir</button>
+      </div>
+      <button class="btn-link mt-2 w-full text-[13px] font-bold text-[#1a3a52] underline underline-offset-4">Copiar enlace de rastreo (?q=${escapeHtml(d.codigo||q)})</button>
+    </div>`;
+    el.querySelector(".btn-share").addEventListener("click",async()=>{const t=`Mi pedido ${d.codigo} (${d.cliente} → ${d.destino}) está: ${st.label}. Rastréalo en Tranxport.`;if(navigator.share){try{await navigator.share({title:"Rastreo Tranxport",text:t});}catch{}}else{try{await navigator.clipboard.writeText(t);showToast("Texto copiado");}catch{showToast("No se pudo copiar");}}});
+    el.querySelector(".btn-link").addEventListener("click",async()=>{const u=new URL(location.href);u.search="";if(d.codigo)u.searchParams.set("q",d.codigo);try{await navigator.clipboard.writeText(u.toString());showToast("Enlace copiado");}catch{showToast("No se pudo copiar");}});
+    resultCard.appendChild(el);
+  });
+  resultCard.classList.remove("hidden");
+  if(window.lucide)lucide.createIcons();
+  anuncio.textContent=pedidos.length===1?("Pedido "+pedidos[0].codigo+". Estado "+getStatus(pedidos[0].estado).label):("Se encontraron "+pedidos.length+" pedidos");
+  document.title=(pedidos[0].codigo||"Pedido")+" · "+getStatus(pedidos[0].estado).label+" · Tranxport";
+  setTimeout(()=>resultCard.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"}),80);
+}
+async function doSearch(){
+  const q=String(input.value||"").trim().replace(/\s+/g," ");
+  hideAll();marcarMunicipios([]);
+  if(q.length<2){notFoundState.classList.remove("hidden");document.getElementById("notFoundDetail").textContent="Escribe al menos 2 caracteres (ej: TRX-001).";input.focus();return;}
+  const myId=++seq;if(ctrl)ctrl.abort();ctrl=new AbortController();
+  setLoading(true);loadingState.classList.remove("hidden");anuncio.textContent="Buscando...";
+  input.value=q;clearBtn.classList.toggle("hidden",!q);
+  try{const u=new URL(location.href);u.searchParams.set("q",q);history.replaceState(null,"",u);}catch{}
+  try{
+    if(!apiLista()){await new Promise(r=>setTimeout(r,700));if(myId!==seq)return;loadingState.classList.add("hidden");setLoading(false);renderResults(buscarEnDemo(q),q,true);saveRecent(q);showToast("Modo demo — pega tu API_URL para datos reales");return;}
+    if(navigator.onLine===false)throw new Error("SIN_INTERNET");
+    const timeout=setTimeout(()=>ctrl.abort(),15000);
+    const res=await fetch(construirUrl(q),{method:"GET",redirect:"follow",cache:"no-store",signal:ctrl.signal});
+    clearTimeout(timeout);if(myId!==seq)return;
+    const raw=await res.text();const txt=raw.replace(/^\uFEFF/,"").replace(/^\)\]\}',?\s*/,"").trim();
+    if(!res.ok)throw new Error("HTTP "+res.status+". Revisa que la URL termine en /exec y sea pública.");
+    if(!txt||txt.charAt(0)==="<")throw new Error("La API devolvió HTML, no JSON. Publica como «Cualquier persona» y devuelve ContentService JSON.");
+    let data;try{data=JSON.parse(txt);}catch{throw new Error("La respuesta no es JSON válido.");}
+    if(myId!==seq)return;loadingState.classList.add("hidden");setLoading(false);
+    renderResults(extraerPedidos(data),q,false);saveRecent(q);
+  }catch(err){
+    if(err&&err.name==="AbortError")return;if(myId!==seq)return;
+    console.error(err);loadingState.classList.add("hidden");setLoading(false);
+    const noNet=err&&err.message==="SIN_INTERNET";
+    document.getElementById("netDetail").textContent=String(err&&err.message||err);
+    (noNet?networkErrorState:notFoundState).classList.remove("hidden");
+    if(!noNet)document.getElementById("notFoundDetail").textContent=String(err&&err.message||err);
+    anuncio.textContent="Error de rastreo";
+  }
+}
+form.addEventListener("submit",e=>{e.preventDefault();doSearch();});
+document.getElementById("retryBtn").addEventListener("click",doSearch);
+input.addEventListener("input",()=>clearBtn.classList.toggle("hidden",!input.value));
+clearBtn.addEventListener("click",()=>{input.value="";clearBtn.classList.add("hidden");input.focus();});
+document.querySelectorAll(".demo-chip").forEach(b=>b.addEventListener("click",()=>{input.value=b.dataset.demo;clearBtn.classList.remove("hidden");doSearch();}));
+/* ═══ COTIZADOR + PEDIDO WEB ═══ */
+const $ = (id) => document.getElementById(id);
+const pesos = (n) => "$" + Math.round(n).toLocaleString("es-CO");
+/* Matriz de distancias por carretera (km). Fuentes: calcularruta/rutadistancia 2026.
+   aprox:true = estimado desde distancia en línea recta (verificar en campo). */
+const DIST_KM = {
+  "la vega":       { "nocaima": [11, 0], "nimaima": [21, 0], "supata": [27, 0], "san francisco": [12, 0] },
+  "nocaima":       { "nimaima": [10, 0], "supata": [22, 1], "san francisco": [18, 1] },
+  "nimaima":       { "supata": [38, 0], "san francisco": [31, 0] },
+  "supata":        { "san francisco": [19, 0] }
+};
+function distKm(mo, md) {
+  const a = normalizarTexto(mo), b = normalizarTexto(md);
+  if (a === b) return null;
+  const fila = DIST_KM[a] || DIST_KM[b];
+  if (!fila) return { km: 0, aprox: true };
+  const otro = fila === DIST_KM[a] ? b : a;
+  const v = fila[otro];
+  return v ? { km: v[0], aprox: !!v[1] } : { km: 0, aprox: true };
+}
+/* Casco urbano Nocaima tiene tarifa propia: $7.000 / $8.000. Resto: $6.000 / $8.000. */
+const URBANO = {
+  "nocaima": [7000, 8000],
+  "default": [6000, 8000]
+};
+function baseRuta(mo, md, grande) {
+  const a = normalizarTexto(mo), b = normalizarTexto(md);
+  const esLaVega = (t) => t.includes("vega");
+  if (a === b) {
+    const t = URBANO[a] || URBANO["default"];
+    return grande ? t[1] : t[0];
+  }
+  if ((esLaVega(a) && (b.includes("nocaima") || b.includes("nimaima"))) ||
+      (esLaVega(b) && (a.includes("nocaima") || a.includes("nimaima")))) return grande ? 12000 : 10000;
+  if (a.includes("supata") || b.includes("supata") || a.includes("san francisco") || b.includes("san francisco")) return grande ? 15000 : 12000;
+  return grande ? 12000 : 10000;
+}
+function cotizar() {
+  const mo = $("c_muniO").value, md = $("c_muniD").value;
+  const grande = $("c_tam").value === "g";
+  const km = Math.max(0, parseFloat($("c_km").value) || 0);
+  const enc = $("c_enc").checked;
+  const valor = Math.max(0, parseFloat($("c_valor").value) || 0);
+  const espera = $("c_espera").checked;
+  const dom = $("c_dom").checked;
+  const base = baseRuta(mo, md, grande);
+  const vereda = km > 0 ? Math.ceil(km / 2) * 2000 : 0;
+  const encargo = (enc && valor > 0) ? Math.max(3000, Math.round(valor * 0.10)) : 0;
+  const tEspera = espera ? 2000 : 0;
+  const sub = base + vereda + encargo + tEspera;
+  const recDom = dom ? Math.round(sub * 0.20) : 0;
+  const total = sub + recDom;
+  const d = distKm(mo, md);
+  const lineas = [d
+    ? `📏 Distancia ${mo} → ${md}: <strong>~${d.km} km</strong> por carretera${d.aprox ? " (aprox.)" : ""}`
+    : `📏 Zona: <strong>casco urbano de ${mo}</strong>`];
+  lineas.push(`Base ${mo} → ${md} (${grande ? "grande/frágil" : "pequeño"}): <strong>${pesos(base)}</strong>`);
+  if (vereda) lineas.push(`Vereda (${km} km): <strong>${pesos(vereda)}</strong>`);
+  if (encargo) lineas.push(`Compra por encargo: <strong>${pesos(encargo)}</strong>`);
+  if (tEspera) lineas.push(`Espera +10 min: <strong>${pesos(tEspera)}</strong>`);
+  if (recDom) lineas.push(`Domingo/festivo +20%: <strong>${pesos(recDom)}</strong>`);
+  $("cot-detalle").innerHTML = lineas.join("<br>");
+  $("cot-total").textContent = pesos(total);
+  $("btn-pedir-txt").innerHTML = '<i data-lucide="send" class="w-5 h-5"></i> Confirmar pedido · ' + pesos(total);
+  if (window.lucide) lucide.createIcons();
+  const waT = `Hola Tranxport, quiero un envío:%0A📍 ${encodeURIComponent(mo)} → ${encodeURIComponent(md)}${d ? ` (~${d.km} km)` : ""}%0A📦 ${grande ? "Grande/frágil" : "Pequeño"}%0A💰 Estimado: ${encodeURIComponent(pesos(total))}`;
+  $("pedido-wa").href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waT}`;
+  return { mo, md, grande, km, total, vereda, encargo, tEspera, recDom, base };
+}
+["c_muniO", "c_muniD", "c_tam", "c_km", "c_enc", "c_valor", "c_espera", "c_dom"].forEach((id) => {
+  $(id).addEventListener("input", cotizar);
+  $(id).addEventListener("change", cotizar);
+});
+$("c_enc").addEventListener("change", () => $("c_valorWrap").classList.toggle("hidden", !$("c_enc").checked));
+$("p_cuando").addEventListener("change", () => $("p_fechaWrap").classList.toggle("hidden", $("p_cuando").value !== "Fecha programada"));
+if (new Date().getDay() === 0) $("c_dom").checked = true;
+
+function pedidoError(msg) {
+  const e = $("pedido-error");
+  if (!msg) { e.hidden = true; return; }
+  e.textContent = msg; e.hidden = false;
+  e.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function folioWeb() {
+  return "WEB-" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
+$("pedido-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  pedidoError("");
+  const c = cotizar();
+  const nombre = $("p_nombre").value.trim();
+  const wa = $("p_wa").value.replace(/\D/g, "");
+  const dirO = $("p_dirO").value.trim();
+  const dirD = $("p_dirD").value.trim();
+  const dest = $("p_dest").value.trim();
+  const desc = $("p_desc").value.trim();
+  const cuando = $("p_cuando").value;
+  const fecha = cuando === "Fecha programada" ? $("p_fecha").value : new Date().toISOString().slice(0, 10);
+  if (nombre.length < 2) return pedidoError("Escribe tu nombre (mínimo 2 letras)."), void $("p_nombre").focus();
+  if (wa.length < 10) return pedidoError("Revisa tu WhatsApp: escribe al menos 10 dígitos."), void $("p_wa").focus();
+  if (dirO.length < 3) return pedidoError("Falta la dirección de recogida."), void $("p_dirO").focus();
+  if (dirD.length < 3) return pedidoError("Falta la dirección de entrega."), void $("p_dirD").focus();
+  if (dest.length < 2) return pedidoError("Indica quién recibe el paquete."), void $("p_dest").focus();
+  const telD = $("p_telD").value.replace(/\D/g, "");
+  if (telD && telD.length < 10) return pedidoError("El WhatsApp de quien recibe debe tener al menos 10 dígitos (o déjalo vacío)."), void $("p_telD").focus();
+  if (desc.length < 3) return pedidoError("Describe brevemente el paquete."), void $("p_desc").focus();
+  if (cuando === "Fecha programada" && !fecha) return pedidoError("Elige la fecha programada."), void $("p_fecha").focus();
+  const folio = folioWeb();
+  const negocio = $("p_negocio").value.trim() || nombre;
+  const datos = {
+    folio, comercio: negocio, contacto: nombre, whatsapp: wa,
+    dirO, muniO: c.mo, muniD: c.md, destinatario: dest, telDest: telD,
+    cuando: cuando === "Fecha programada" ? "Programado" : "Hoy mismo",
+    fecha, servicio: c.grande ? "Grande / frágil" : "Pequeño",
+    valor: $("c_enc").checked ? ($("c_valor").value || "0") : "",
+    pago: $("p_pago").value, email: $("p_email").value.trim(),
+    desc, dirD, obs: $("p_obs").value.trim(), tarifa: String(c.total)
+  };
+  const btn = $("btn-pedir");
+  btn.disabled = true;
+  $("btn-pedir-txt").textContent = "Enviando pedido…";
+  if (!apiLista()) {
+    setTimeout(() => mostrarPedidoOk({ codigo: folio + " (demo)", demo: true, total: c.total, nombre, folio }), 800);
+    return;
+  }
+  const f = document.createElement("form");
+  f.method = "POST"; f.action = String(API_URL).trim(); f.target = "envio-pedido"; f.hidden = true;
+  Object.keys(datos).forEach((k) => {
+    const i = document.createElement("input");
+    i.type = "hidden"; i.name = k; i.value = datos[k];
+    f.appendChild(i);
+  });
+  document.body.appendChild(f);
+  const frame = $("envio-pedido");
+  const listo = () => { frame.removeEventListener("load", listo); f.remove(); buscarCodigoPedido(folio, c, nombre); };
+  frame.addEventListener("load", listo);
+  setTimeout(() => { try { frame.removeEventListener("load", listo); } catch {} if (!document.getElementById("pedido-ok") || document.getElementById("pedido-ok").hidden) { f.remove(); buscarCodigoPedido(folio, c, nombre); } }, 12000);
+  f.submit();
+});
+async function buscarCodigoPedido(folio, c, nombre) {
+  let codigo = "";
+  for (let i = 0; i < 4 && !codigo; i++) {
+    await new Promise((r) => setTimeout(r, 2500));
+    try {
+      const res = await fetch(construirUrl(folio), { method: "GET", cache: "no-store" });
+      const txt = (await res.text()).replace(/^\uFEFF/, "").trim();
+      if (txt && txt.charAt(0) !== "<") {
+        const ps = extraerPedidos(JSON.parse(txt));
+        if (ps.length && ps[0].codigo) codigo = ps[0].codigo;
+      }
+    } catch {}
+  }
+  mostrarPedidoOk({ codigo: codigo || folio, confirmado: !!codigo, demo: false, total: c.total, nombre, folio });
+}
+function mostrarPedidoOk({ codigo, confirmado, demo, total, nombre, folio }) {
+  const btn = $("btn-pedir");
+  btn.disabled = false;
+  cotizar();
+  $("pedido-form").hidden = true;
+  const ok = $("pedido-ok");
+  ok.hidden = false;
+  $("pedido-ok-txt").innerHTML = demo
+    ? `${nombre}, este es el <strong>modo demostración</strong>. Folio: <span class="font-mono2 font-bold">${folio}</span> · Estimado: <strong>${pesos(total)}</strong>.`
+    : confirmado
+    ? `${nombre}, tu pedido quedó registrado por <strong>${pesos(total)}</strong>.<br>Código de rastreo: <span class="font-mono2 font-bold text-[#1a3a52]">${codigo}</span>`
+    : `${nombre}, enviamos tu pedido pero <strong>no pudimos confirmar el registro automático</strong>.<br>Toca WhatsApp y lo confirmamos al instante (folio <span class="font-mono2 font-bold">${folio}</span>, estimado <strong>${pesos(total)}</strong>).`;
+  const q = codigo && !demo ? codigo : folio;
+  const aqui = location.href.split("?")[0].split("#")[0];
+  $("pedido-rastrear").href = aqui + "?q=" + encodeURIComponent(q) + "#rastreador";
+  const waT = encodeURIComponent(`Hola Tranxport, acabo de hacer un pedido web (${q}) por ${pesos(total)}. Quedo atento a la confirmación.`);
+  $("pedido-ok-wa").href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waT}`;
+  if (window.lucide) lucide.createIcons();
+  ok.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+$("pedido-otro").addEventListener("click", () => {
+  $("pedido-ok").hidden = true;
+  $("pedido-form").hidden = false;
+  $("pedido-form").reset();
+  if (new Date().getDay() === 0) $("c_dom").checked = true;
+  cotizar();
+});
+cotizar();
+
+if(!apiLista())avisoDemo.hidden=false;
+renderRecent();marcarMunicipios([]);
+(function(){const p=new URLSearchParams(location.search);const q=(p.get("q")||p.get("codigo")||"").trim();if(q){input.value=q;clearBtn.classList.remove("hidden");doSearch();}})();
+if(window.lucide)lucide.createIcons();
+</script>
+</body>
+</html>
