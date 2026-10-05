@@ -83,9 +83,9 @@ svg.mapa-ok #ruta-progreso{stroke:#27ae60;stroke-width:3.5;stroke-dasharray:640 
     </a>
     <nav class="hidden md:flex items-center gap-1 text-[13px] font-semibold text-sky-100/90">
       <a href="#rastreador" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Rastrear</a>
+      <a href="#cobertura" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Cobertura</a>
       <a href="#tarifas" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Tarifas</a>
       <a href="#cotizar" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Cotizar</a>
-      <a href="#cobertura" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Cobertura</a>
       <a href="#ayuda" class="px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white">Ayuda</a>
     </nav>
     <a id="waHeaderBtn" href="https://wa.me/573222550163?text=Hola%20Tranxport%2C%20necesito%20ayuda%20con%20mi%20pedido" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1fb857] active:scale-95 transition text-white text-[13px] font-bold px-3.5 py-2.5 rounded-xl shadow-md"><i data-lucide="message-circle" class="w-4 h-4"></i><span>WhatsApp</span></a>
@@ -171,6 +171,45 @@ svg.mapa-ok #ruta-progreso{stroke:#27ae60;stroke-width:3.5;stroke-dasharray:640 
     <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 text-center shadow-sm"><i data-lucide="bike" class="w-5 h-5 mx-auto text-[#27ae60]"></i><p class="mt-1.5 text-[18px] font-extrabold text-[#1a3a52] leading-none">100%</p><p class="text-[11px] font-semibold text-slate-500 mt-0.5">En moto</p></div>
   </div>
 </main>
+
+<section id="cobertura" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
+  <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-8">
+    <p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Zona de cobertura</p>
+    <h2 class="mt-1 text-2xl font-extrabold text-[#1a3a52] tracking-tight">Operamos en 5 municipios</h2>
+    <p class="mt-1 text-[14px] text-slate-600">Mapa esquemático, no a escala. Reacciona a tu búsqueda: ámbar = pendiente, moto azul en movimiento = en ruta, línea verde = entregado.</p>
+    <div class="mt-4 grid lg:grid-cols-2 gap-4 items-start">
+      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-3 relative">
+        <div id="mapa-chip" hidden class="mapa-chip pend"></div>
+        <svg id="mapa-svg" viewBox="0 0 360 214" role="img" aria-label="Mapa esquemático de San Francisco, Supatá, La Vega, Nimaima y Nocaima" class="w-full h-auto block">
+          <ellipse cx="70" cy="168" rx="62" ry="26" fill="#e7eef3"/><ellipse cx="188" cy="52" rx="54" ry="22" fill="#e7eef3"/><ellipse cx="292" cy="162" rx="58" ry="24" fill="#edf3f7"/>
+          <path d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#d5dee6" stroke-width="10" stroke-linecap="round"/>
+          <path id="ruta-progreso" d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#1a3a52" stroke-width="2" stroke-dasharray="5 7" stroke-linecap="round"/>
+          <text x="16" y="24" fill="#8aa0b0" font-size="11">Gualivá · no a escala</text>
+          <g class="pin" data-muni="san-francisco"><circle class="halo" cx="58" cy="138" r="14"/><circle class="nucleo" cx="58" cy="138" r="6.5"/><text x="58" y="168" text-anchor="middle">San Francisco</text></g>
+          <g class="pin" data-muni="supata"><circle class="halo" cx="124" cy="70" r="14"/><circle class="nucleo" cx="124" cy="70" r="6.5"/><text x="124" y="52" text-anchor="middle">Supatá</text></g>
+          <g class="pin" data-muni="la-vega"><circle class="halo" cx="180" cy="138" r="14"/><circle class="nucleo" cx="180" cy="138" r="6.5"/><text x="180" y="168" text-anchor="middle">La Vega</text></g>
+          <g class="pin" data-muni="nimaima"><circle class="halo" cx="236" cy="70" r="14"/><circle class="nucleo" cx="236" cy="70" r="6.5"/><text x="236" y="52" text-anchor="middle">Nimaima</text></g>
+          <g class="pin" data-muni="nocaima"><circle class="halo" cx="302" cy="138" r="14"/><circle class="nucleo" cx="302" cy="138" r="6.5"/><text x="302" y="168" text-anchor="middle">Nocaima</text></g>
+          <g id="moto-mapa" visibility="hidden"><text font-size="17" text-anchor="middle">🏍️<animateMotion dur="6s" repeatCount="indefinite" path="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138"/></text></g>
+        </svg>
+        <ul class="lista-munis mt-3 flex flex-wrap gap-2 list-none p-0">
+          <li data-muni="la-vega" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">La Vega</li>
+          <li data-muni="nocaima" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Nocaima</li>
+          <li data-muni="nimaima" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Nimaima</li>
+          <li data-muni="supata" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Supatá</li>
+          <li data-muni="san-francisco" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">San Francisco</li>
+        </ul>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-2 gap-2.5">
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="store" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">La Vega</p><p class="text-[11px] font-semibold text-slate-500">Base principal</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="church" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nocaima</p><p class="text-[11px] font-semibold text-slate-500">Panela y café</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="mountain" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nimaima</p><p class="text-[11px] font-semibold text-slate-500">Ruta Tobia</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="tent-tree" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Supatá</p><p class="text-[11px] font-semibold text-slate-500">Zona rural</p></div>
+        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center col-span-2"><i data-lucide="landmark" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">San Francisco</p><p class="text-[11px] font-semibold text-slate-500">Cobertura total en moto</p></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section id="tarifas" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
   <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-8">
@@ -283,45 +322,6 @@ svg.mapa-ok #ruta-progreso{stroke:#27ae60;stroke-width:3.5;stroke-dasharray:640 
 </section>
 
 <iframe name="envio-pedido" id="envio-pedido" hidden title="Envío de pedido"></iframe>
-
-<section id="cobertura" class="max-w-5xl mx-auto px-4 mt-8 scroll-mt-24">
-  <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-8">
-    <p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Zona de cobertura</p>
-    <h2 class="mt-1 text-2xl font-extrabold text-[#1a3a52] tracking-tight">Operamos en 5 municipios</h2>
-    <p class="mt-1 text-[14px] text-slate-600">Mapa esquemático, no a escala. Reacciona a tu búsqueda: ámbar = pendiente, moto azul en movimiento = en ruta, línea verde = entregado.</p>
-    <div class="mt-4 grid lg:grid-cols-2 gap-4 items-start">
-      <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-3 relative">
-        <div id="mapa-chip" hidden class="mapa-chip pend"></div>
-        <svg id="mapa-svg" viewBox="0 0 360 214" role="img" aria-label="Mapa esquemático de San Francisco, Supatá, La Vega, Nimaima y Nocaima" class="w-full h-auto block">
-          <ellipse cx="70" cy="168" rx="62" ry="26" fill="#e7eef3"/><ellipse cx="188" cy="52" rx="54" ry="22" fill="#e7eef3"/><ellipse cx="292" cy="162" rx="58" ry="24" fill="#edf3f7"/>
-          <path d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#d5dee6" stroke-width="10" stroke-linecap="round"/>
-          <path id="ruta-progreso" d="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138" fill="none" stroke="#1a3a52" stroke-width="2" stroke-dasharray="5 7" stroke-linecap="round"/>
-          <text x="16" y="24" fill="#8aa0b0" font-size="11">Gualivá · no a escala</text>
-          <g class="pin" data-muni="san-francisco"><circle class="halo" cx="58" cy="138" r="14"/><circle class="nucleo" cx="58" cy="138" r="6.5"/><text x="58" y="168" text-anchor="middle">San Francisco</text></g>
-          <g class="pin" data-muni="supata"><circle class="halo" cx="124" cy="70" r="14"/><circle class="nucleo" cx="124" cy="70" r="6.5"/><text x="124" y="52" text-anchor="middle">Supatá</text></g>
-          <g class="pin" data-muni="la-vega"><circle class="halo" cx="180" cy="138" r="14"/><circle class="nucleo" cx="180" cy="138" r="6.5"/><text x="180" y="168" text-anchor="middle">La Vega</text></g>
-          <g class="pin" data-muni="nimaima"><circle class="halo" cx="236" cy="70" r="14"/><circle class="nucleo" cx="236" cy="70" r="6.5"/><text x="236" y="52" text-anchor="middle">Nimaima</text></g>
-          <g class="pin" data-muni="nocaima"><circle class="halo" cx="302" cy="138" r="14"/><circle class="nucleo" cx="302" cy="138" r="6.5"/><text x="302" y="168" text-anchor="middle">Nocaima</text></g>
-          <g id="moto-mapa" visibility="hidden"><text font-size="17" text-anchor="middle">🏍️<animateMotion dur="6s" repeatCount="indefinite" path="M58 138 C 90 138, 100 70, 124 70 C 150 70, 155 138, 180 138 C 210 138, 214 70, 236 70 C 262 70, 270 138, 302 138"/></text></g>
-        </svg>
-        <ul class="lista-munis mt-3 flex flex-wrap gap-2 list-none p-0">
-          <li data-muni="la-vega" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">La Vega</li>
-          <li data-muni="nocaima" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Nocaima</li>
-          <li data-muni="nimaima" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Nimaima</li>
-          <li data-muni="supata" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">Supatá</li>
-          <li data-muni="san-francisco" class="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-[13px] font-bold">San Francisco</li>
-        </ul>
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-2 gap-2.5">
-        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="store" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">La Vega</p><p class="text-[11px] font-semibold text-slate-500">Base principal</p></div>
-        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="church" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nocaima</p><p class="text-[11px] font-semibold text-slate-500">Panela y café</p></div>
-        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="mountain" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Nimaima</p><p class="text-[11px] font-semibold text-slate-500">Ruta Tobia</p></div>
-        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center"><i data-lucide="tent-tree" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">Supatá</p><p class="text-[11px] font-semibold text-slate-500">Zona rural</p></div>
-        <div class="rounded-2xl bg-[#f4f4f4] border border-slate-200 p-4 text-center col-span-2"><i data-lucide="landmark" class="w-6 h-6 mx-auto text-[#1a3a52]"></i><p class="mt-2 font-extrabold text-[#1a3a52] text-[14px]">San Francisco</p><p class="text-[11px] font-semibold text-slate-500">Cobertura total en moto</p></div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <section class="max-w-5xl mx-auto px-4 mt-8">
   <div class="text-center"><p class="text-[12px] font-extrabold uppercase tracking-[.2em] text-[#1a3a52]/60">Simple y rápido</p><h2 class="mt-1 text-2xl sm:text-3xl font-extrabold text-[#1a3a52] tracking-tight">Rastrea en 3 pasos</h2></div>
