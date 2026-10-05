@@ -63,6 +63,8 @@ svg.mapa-ok #ruta-progreso{stroke:#27ae60;stroke-width:3.5;stroke-dasharray:640 
 @keyframes dibujar{to{stroke-dashoffset:0}}
 .mapa-chip{position:absolute;top:10px;left:10px;right:10px;text-align:center;font-size:12.5px;font-weight:800;padding:8px 12px;border-radius:12px;box-shadow:0 8px 20px rgba(15,37,54,.25);z-index:2}
 .mapa-chip.ok{background:#27ae60;color:#fff} .mapa-chip.ruta{background:#3498db;color:#fff} .mapa-chip.pend{background:#f39c12;color:#1a3a52}
+.destacar{animation:destacar 2.2s ease}
+@keyframes destacar{0%,60%{box-shadow:0 0 0 4px #f39c12,0 18px 44px rgba(26,58,82,.25)}100%{box-shadow:0 10px 28px rgba(26,58,82,.10)}}
 .lista-munis li.activo{background:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important}
 @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *,*::before,*::after{animation:none!important;transition:none!important} }
 @media print{ header,.no-print,form,#toast,.wa-pulse,footer section{display:none!important} body{background:#fff} }
@@ -465,6 +467,7 @@ function renderResults(pedidos,q,esDemo){
         <button class="btn-share inline-flex items-center justify-center gap-1.5 bg-[#1a3a52] text-white font-bold text-[13px] px-3 py-3 rounded-xl"><i data-lucide="share-2" class="w-4 h-4"></i> Compartir</button>
       </div>
       <button class="btn-link mt-2 w-full text-[13px] font-bold text-[#1a3a52] underline underline-offset-4">Copiar enlace de rastreo (?q=${escapeHtml(d.codigo||q)})</button>
+      <a href="#cobertura" class="btn-link mt-1 w-full text-[13px] font-bold text-[#1a3a52] underline underline-offset-4">📍 Ver el avance en el mapa</a>
     </div>`;
     el.querySelector(".btn-share").addEventListener("click",async()=>{const t=`Mi pedido ${d.codigo} (${d.cliente} → ${d.destino}) está: ${st.label}. Rastréalo en Tranxport.`;if(navigator.share){try{await navigator.share({title:"Rastreo Tranxport",text:t});}catch{}}else{try{await navigator.clipboard.writeText(t);showToast("Texto copiado");}catch{showToast("No se pudo copiar");}}});
     el.querySelector(".btn-link").addEventListener("click",async()=>{const u=new URL(location.href);u.search="";if(d.codigo)u.searchParams.set("q",d.codigo);try{await navigator.clipboard.writeText(u.toString());showToast("Enlace copiado");}catch{showToast("No se pudo copiar");}});
@@ -474,7 +477,14 @@ function renderResults(pedidos,q,esDemo){
   if(window.lucide)lucide.createIcons();
   anuncio.textContent=pedidos.length===1?("Pedido "+pedidos[0].codigo+". Estado "+getStatus(pedidos[0].estado).label):("Se encontraron "+pedidos.length+" pedidos");
   document.title=(pedidos[0].codigo||"Pedido")+" · "+getStatus(pedidos[0].estado).label+" · Tranxport";
-  setTimeout(()=>resultCard.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"}),80);
+  setTimeout(()=>{
+    const primera=resultCard.firstElementChild;
+    if(primera){
+      primera.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"});
+      primera.classList.add("destacar");
+      setTimeout(()=>primera.classList.remove("destacar"),2300);
+    }
+  },80);
 }
 async function doSearch(){
   const q=String(input.value||"").trim().replace(/\s+/g," ");
